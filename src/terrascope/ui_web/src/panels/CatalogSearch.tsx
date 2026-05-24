@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { invoke } from "../bridge";
+import { invoke, onEvent } from "../bridge";
 import { formatDMS, parseDMS } from "./dms";
 import { JobProgress } from "./JobProgress";
 
@@ -58,6 +58,7 @@ export function CatalogSearch() {
 
   const [downloadJobId, setDownloadJobId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [picking, setPicking] = useState(false);
   // Per-item download status while a batch is running.
   const [batchProgress, setBatchProgress] = useState<{
     done: number;
@@ -72,12 +73,41 @@ export function CatalogSearch() {
   const [batchOutDir, setBatchOutDir] = useState<string | null>(null);
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
 
-  // Clean up the map preview when the panel unmounts (user navigates away).
+  // Clean up the map preview + any active AOI picker when the panel
+  // unmounts (user navigates away).
   useEffect(() => {
     return () => {
       void invoke("catalog.clear_preview");
+      void invoke("catalog.pick_aoi.stop");
     };
   }, []);
+
+  // Listen for the "user finished drawing the AOI rectangle" event the
+  // canvas-side tool emits when they release the mouse.
+  useEffect(() => {
+    return onEvent((payload) => {
+      const p = payload as {
+        type?: string;
+        bbox?: [number, number, number, number];
+      };
+      if (p.type !== "catalog.aoi.picked" || !p.bbox) return;
+      const [west, south, east, north] = p.bbox;
+      if (format === "dd") {
+        setNw({ lat: String(north), lon: String(west) });
+        setSe({ lat: String(south), lon: String(east) });
+      } else {
+        setNwDms({
+          lat: formatDMS(north, true),
+          lon: formatDMS(west, false),
+        });
+        setSeDms({
+          lat: formatDMS(south, true),
+          lon: formatDMS(east, false),
+        });
+      }
+      setPicking(false);
+    });
+  }, [format]);
 
   const currentBbox = (): {
     west: number;
@@ -166,6 +196,22 @@ export function CatalogSearch() {
     }
   };
 
+  const pickOnMap = async () => {
+    setErr(null);
+    if (picking) {
+      // Toggle off — user clicked the active button.
+      await invoke("catalog.pick_aoi.stop");
+      setPicking(false);
+      return;
+    }
+    const r = await invoke("catalog.pick_aoi.start");
+    if (!r.ok) {
+      setErr(r.error ?? "Could not start the map picker.");
+      return;
+    }
+    setPicking(true);
+  };
+
   const useCanvasBbox = async () => {
     setErr(null);
     const res = await invoke<{ bbox: [number, number, number, number] }>(
@@ -231,8 +277,26 @@ export function CatalogSearch() {
             >
               Use canvas extent
             </button>
+            <button
+              onClick={pickOnMap}
+              className={
+                "px-2.5 py-1 border border-bg-2 rounded " +
+                (picking
+                  ? "bg-accent text-white"
+                  : "bg-bg-2 hover:bg-bg-0")
+              }
+              title="Drag a rectangle on the QGIS canvas"
+            >
+              {picking ? "Draw on map…" : "Pick on map"}
+            </button>
           </div>
         </div>
+        {picking && (
+          <p className="text-xs text-fg-muted mb-2">
+            Click and drag on the map to outline your AOI; release to confirm.
+            Click "Pick on map" again to cancel.
+          </p>
+        )}
 
         <CornerRow
           name="Top-left (NW)"

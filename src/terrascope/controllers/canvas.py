@@ -212,6 +212,165 @@ def clear_preview(_payload: dict[str, Any]) -> dict[str, Any]:
     return {"removed": removed}
 
 
+# --------------------------------------------------------------------------- #
+# Drag-a-rectangle AOI picker                                                 #
+# --------------------------------------------------------------------------- #
+#
+# Lets the user choose the AOI by dragging on the canvas instead of typing
+# four coordinates.  Activated by ``catalog.pick_aoi.start``; user drags a
+# rectangle; on release we project to WGS84 and emit a ``catalog.aoi.picked``
+# event the React panel listens for.
+#
+_aoi_picker: Any = None  # active tool, kept alive at module scope
+
+
+def start_aoi_pick(_payload: dict[str, Any]) -> dict[str, Any]:
+    """Activate a rubber-band rectangle tool on the canvas.
+
+    Emits ``{type: "catalog.aoi.picked", bbox: [west,south,east,north]}``
+    on the bridge event channel when the user releases the mouse.  The
+    React side wires this to the NW/SE corner fields.
+    """
+    from qgis.utils import iface
+
+    global _aoi_picker
+    if iface is None:
+        raise RuntimeError("QGIS iface unavailable")
+
+    canvas = iface.mapCanvas()
+    _aoi_picker = _build_rect_tool(canvas)
+    canvas.setMapTool(_aoi_picker)
+    return {"active": True}
+
+
+def stop_aoi_pick(_payload: dict[str, Any]) -> dict[str, Any]:
+    """Revert to the previous map tool, if one is set."""
+    from qgis.utils import iface
+
+    global _aoi_picker
+    if iface is not None and _aoi_picker is not None:
+        try:
+            iface.mapCanvas().unsetMapTool(_aoi_picker)
+        except Exception:  # noqa: BLE001
+            pass
+    _aoi_picker = None
+    return {"active": False}
+
+
+def _build_rect_tool(canvas: Any) -> Any:
+    """Return a QgsMapTool that lets the user drag an AOI rectangle.
+
+    Implemented as a thin subclass with a rubber band — works on every
+    QGIS version we care about and avoids relying on QgsMapToolExtent's
+    sometimes-shifting API.
+    """
+    from qgis.core import (
+        Qgis,
+        QgsCoordinateReferenceSystem,
+        QgsCoordinateTransform,
+        QgsMessageLog,
+        QgsPointXY,
+        QgsProject,
+        QgsRectangle,
+        QgsWkbTypes,
+    )
+    from qgis.gui import QgsMapTool, QgsRubberBand
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtGui import QColor
+
+    class _AoiRectTool(QgsMapTool):
+        def __init__(self) -> None:
+            super().__init__(canvas)
+            self._band = QgsRubberBand(canvas, QgsWkbTypes.PolygonGeometry)
+            self._band.setStrokeColor(QColor(64, 196, 255))
+            self._band.setFillColor(QColor(64, 196, 255, 40))
+            self._band.setWidth(1)
+            self._start: QgsPointXY | None = None
+            try:
+                self._cursor = Qt.CursorShape.CrossCursor
+            except AttributeError:  # PyQt5
+                self._cursor = Qt.CrossCursor
+
+        def activate(self) -> None:  # noqa: D401 — QgsMapTool API
+            super().activate()
+            try:
+                canvas.setCursor(self._cursor)  # type: ignore[arg-type]
+            except Exception:  # noqa: BLE001
+                pass
+
+        def canvasPressEvent(self, e) -> None:  # type: ignore[no-untyped-def] # noqa: N802
+            self._start = self.toMapCoordinates(e.pos())
+            self._band.reset(QgsWkbTypes.PolygonGeometry)
+
+        def canvasMoveEvent(self, e) -> None:  # type: ignore[no-untyped-def] # noqa: N802
+            if self._start is None:
+                return
+            cur = self.toMapCoordinates(e.pos())
+            self._band.reset(QgsWkbTypes.PolygonGeometry)
+            for pt in (
+                self._start,
+                QgsPointXY(cur.x(), self._start.y()),
+                cur,
+                QgsPointXY(self._start.x(), cur.y()),
+            ):
+                self._band.addPoint(pt, False)
+            self._band.closePoints()
+
+        def canvasReleaseEvent(self, e) -> None:  # type: ignore[no-untyped-def] # noqa: N802
+            if self._start is None:
+                return
+            end = self.toMapCoordinates(e.pos())
+            x_min, x_max = sorted([self._start.x(), end.x()])
+            y_min, y_max = sorted([self._start.y(), end.y()])
+            self._start = None
+            self._band.reset(QgsWkbTypes.PolygonGeometry)
+
+            # Convert canvas-CRS rect to WGS84 (CRS84 axis order).
+            src_crs = canvas.mapSettings().destinationCrs()
+            wgs84 = QgsCoordinateReferenceSystem("OGC:CRS84")
+            if not wgs84.isValid():
+                wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
+            xform = QgsCoordinateTransform(src_crs, wgs84, QgsProject.instance())
+            try:
+                wgs = xform.transformBoundingBox(
+                    QgsRectangle(x_min, y_min, x_max, y_max),
+                    handle180Crossover=True,
+                )
+            except TypeError:
+                wgs = xform.transformBoundingBox(
+                    QgsRectangle(x_min, y_min, x_max, y_max)
+                )
+
+            west, south = wgs.xMinimum(), wgs.yMinimum()
+            east, north = wgs.xMaximum(), wgs.yMaximum()
+
+            QgsMessageLog.logMessage(
+                f"AOI pick: canvas_crs={src_crs.authid()} "
+                f"raw=({x_min:.3f},{y_min:.3f},{x_max:.3f},{y_max:.3f}) "
+                f"-> wgs84=({west:.6f},{south:.6f},{east:.6f},{north:.6f})",
+                "TerraScope",
+                Qgis.MessageLevel.Info,
+            )
+
+            from ..bridge import push_event
+
+            push_event(
+                {
+                    "type": "catalog.aoi.picked",
+                    "bbox": [west, south, east, north],
+                }
+            )
+            # Auto-deactivate — single-shot tool.  User clicks the
+            # button again to redo.
+            stop_aoi_pick({})
+
+        def deactivate(self) -> None:  # noqa: D401 — QgsMapTool API
+            self._band.reset(QgsWkbTypes.PolygonGeometry)
+            super().deactivate()
+
+    return _AoiRectTool()
+
+
 def _remove_preview_layer() -> bool:
     """Drop the tracked preview layer from the project.  Idempotent."""
     from qgis.core import QgsProject

@@ -46,6 +46,8 @@ class Controllers:
         self._handlers["catalog.download"] = _catalog.download
         self._handlers["catalog.preview_footprint"] = _canvas.preview_footprint
         self._handlers["catalog.clear_preview"] = _canvas.clear_preview
+        self._handlers["catalog.pick_aoi.start"] = _canvas.start_aoi_pick
+        self._handlers["catalog.pick_aoi.stop"] = _canvas.stop_aoi_pick
         self._handlers["canvas.bbox"] = _canvas.bbox
 
         # Layer + dialog helpers (used by every panel that picks a layer or path).
