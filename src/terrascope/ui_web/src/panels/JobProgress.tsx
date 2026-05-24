@@ -14,11 +14,13 @@ import { LogTail } from "./LogTail";
  * progress event arrives within :data:`STALL_WARN_MS`.
  */
 
-// Two minutes — long enough that genuinely slow steps (first-time module
-// imports, big STAC item fetches, ONNX export) don't trip the warning,
-// short enough that a truly-hung task still surfaces before the user
-// gives up and clicks away.
-const STALL_WARN_MS = 120_000;
+// Ninety seconds — the Python side emits a `task.heartbeat` event for
+// every active job every 30 s (see controllers/_heartbeat.py), and any
+// matching-job_id event resets this timer.  So as long as the task is
+// alive at all, we get three reset opportunities before the watchdog
+// trips; the user only sees this warning when the task is actually
+// stuck (worker thread crashed, bridge disconnected, deadlock).
+const STALL_WARN_MS = 90_000;
 
 export interface JobProgressProps {
   jobId: string | null;
@@ -105,11 +107,12 @@ export function JobProgress({ jobId, onComplete, onFailed }: JobProgressProps) {
       </p>
       {stalled && done === "running" && (
         <p className="text-warn text-xs mt-1">
-          No progress event in {Math.round(STALL_WARN_MS / 60_000)} min.
-          The task may be hung, the underlying dependency may be missing,
-          or the bridge may have stopped forwarding events. Check the log
-          below (or the QGIS Log Messages panel — View → Panels → Log
-          Messages → TerraScope tab) for the real last-known status.
+          No event from the task in {Math.round(STALL_WARN_MS / 1000)} s,
+          and the every-30s heartbeat has stopped too. The task is
+          probably hung — worker thread crashed, a dependency is
+          missing, or the bridge has dropped events. Check the log
+          below (or QGIS → Log Messages → TerraScope) for the last
+          status before the silence.
         </p>
       )}
       <LogTail startOpen={stalled || done === "fail"} />

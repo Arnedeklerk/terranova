@@ -33,15 +33,35 @@ def hold(job_id: str, task: Any) -> None:
     """Pin `task` in memory until :func:`release` is called."""
     with _lock:
         _active[job_id] = task
+    # Start the heartbeat ticker if it isn't running yet.  Lazy import
+    # so this module stays QGIS-free for the unit-test environment.
+    try:
+        from . import _heartbeat
+
+        _heartbeat.ensure_running()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def release(job_id: str) -> None:
     """Drop the reference to a finished task.  Idempotent."""
     with _lock:
         _active.pop(job_id, None)
+    try:
+        from . import _heartbeat
+
+        _heartbeat.stop_if_idle()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def active_count() -> int:
     """Diagnostic — number of tasks currently kept alive."""
     with _lock:
         return len(_active)
+
+
+def active_job_ids() -> list[str]:
+    """Snapshot of currently-tracked job ids (for the heartbeat ticker)."""
+    with _lock:
+        return list(_active.keys())
