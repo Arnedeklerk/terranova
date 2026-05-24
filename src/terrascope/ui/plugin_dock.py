@@ -96,16 +96,27 @@ class TerraScopeDock(QDockWidget):
 
 
 def _enable_remote_content(settings: object) -> None:
-    """Let file://-loaded HTML fetch https:// resources.
+    """Configure the QWebEngineView's page settings.
 
-    Needed by Leaflet (OSM tile PNGs over HTTPS).  Without this, Chromium
-    treats the dock's local HTML as untrusted-relative-to-the-internet
-    and silently drops the tile image requests — the user sees a blank
-    grey map area.
+    Three concerns folded into one helper because they all hit the same
+    QWebEngineSettings object:
+
+    - **Network access from file:// origin.**  Leaflet needs to fetch
+      tile PNGs over HTTPS; Chromium blocks that by default for local
+      HTML and the user sees a blank grey map.
+
+    - **Hardware-accelerated rendering.**  QtWebEngine in embeds will
+      silently fall back to software compositing if these flags aren't
+      flipped, which is the single biggest source of "the map isn't
+      buttery smooth" pan jank.  Turning on Accelerated2dCanvas and
+      WebGL makes Chromium ask for a GPU surface.
+
+    - **Smooth scrolling.**  Enables the touch/wheel easing curve that
+      makes pan feel less stuttery on intermediate-speed inputs.
 
     PyQt5 exposes the enum flat (``QWebEngineSettings.X``); PyQt6 nests
-    it under ``WebAttribute``.  We attempt both and shrug on failure
-    since the dock still works without tiles.
+    it under ``WebAttribute``.  We try both and shrug on failure for
+    any single attribute — the dock still works in degraded mode.
     """
     try:
         from qgis.PyQt.QtWebEngineCore import QWebEngineSettings  # type: ignore[import-not-found]
@@ -117,8 +128,16 @@ def _enable_remote_content(settings: object) -> None:
 
     attr_holder = getattr(QWebEngineSettings, "WebAttribute", QWebEngineSettings)
     for name in (
+        # Network from file://
         "LocalContentCanAccessRemoteUrls",
         "LocalContentCanAccessFileUrls",
+        # GPU compositing for Leaflet's canvas renderer + any future
+        # WebGL-backed map widgets we might swap in.
+        "Accelerated2dCanvasEnabled",
+        "WebGLEnabled",
+        # Smoother wheel/touch pan.
+        "ScrollAnimatorEnabled",
+        "SmoothScrollingEnabled",
     ):
         attr = getattr(attr_holder, name, None)
         if attr is None:

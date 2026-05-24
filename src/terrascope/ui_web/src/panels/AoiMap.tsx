@@ -41,18 +41,21 @@ const BASEMAPS: Record<
       subdomains: "abcd",
       maxZoom: 20,
       keepBuffer: 4,
+      // Defer tile-grid rebuilds until the pan/zoom gesture stops.
+      // Makes the gesture itself glassy at the cost of a brief
+      // blank-edge while tiles load; combined with keepBuffer: 4 the
+      // blank-edge is minimal because tiles are preloaded.
+      updateWhenIdle: true,
     },
   },
   satellite: {
-    // Esri World Imagery — high-resolution global satellite mosaic from
-    // multiple providers.  Free for non-commercial and most commercial
-    // use with attribution; no API key required.
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     options: {
       attribution:
         "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
       maxZoom: 19,
       keepBuffer: 4,
+      updateWhenIdle: true,
     },
   },
 };
@@ -444,11 +447,18 @@ export function AoiMap({
         <div
           ref={containerRef}
           className="w-full"
-          style={
-            expanded
+          style={{
+            // GPU compositing hints — promote the map container to its
+            // own composited layer so pan/zoom blits are done on the
+            // GPU instead of the CPU.  Single biggest source of
+            // residual jank inside QtWebEngine embeds.
+            willChange: "transform",
+            transform: "translateZ(0)",
+            backfaceVisibility: "hidden",
+            ...(expanded
               ? { flex: "1 1 auto", minHeight: 0 }
-              : { aspectRatio: "3 / 2", minHeight: 340 }
-          }
+              : { aspectRatio: "3 / 2", minHeight: 340 }),
+          }}
         />
       </div>
     </>
