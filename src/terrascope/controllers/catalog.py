@@ -39,6 +39,10 @@ def search(payload: dict[str, Any]) -> dict[str, Any]:
                 "datetime": str(it.datetime),
                 "cloud": it.properties.get("eo:cloud_cover"),
                 "platform": it.properties.get("platform"),
+                # bbox + geometry let the React side ask QGIS to draw a
+                # preview footprint on the map without a second round trip.
+                "bbox": list(it.bbox) if it.bbox else None,
+                "geometry": it.geometry,
             }
             for it in items
         ],

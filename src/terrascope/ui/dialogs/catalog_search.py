@@ -293,7 +293,12 @@ class CatalogSearchDialog(QDialog):
         canvas = self.iface.mapCanvas()
         extent = canvas.extent()
         src_crs = canvas.mapSettings().destinationCrs()
-        wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
+        # OGC:CRS84 forces lon,lat axis order — EPSG:4326 in QGIS 4 / PROJ 9
+        # has lat,lon order and the resulting QgsRectangle stores latitudes
+        # in x, which is what caused the 'lat right, lon wrong' symptom.
+        wgs84 = QgsCoordinateReferenceSystem("OGC:CRS84")
+        if not wgs84.isValid():
+            wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
         raw = (
             extent.xMinimum(),
             extent.yMinimum(),
@@ -304,16 +309,13 @@ class CatalogSearchDialog(QDialog):
         try:
             if not src_crs.isValid():
                 raise ValueError("canvas has no valid CRS")
-            if src_crs.authid() == "EPSG:4326":
-                wgs_extent = extent
-            else:
-                xform = QgsCoordinateTransform(src_crs, wgs84, QgsProject.instance())
-                try:
-                    wgs_extent = xform.transformBoundingBox(
-                        extent, handle180Crossover=True
-                    )
-                except TypeError:
-                    wgs_extent = xform.transformBoundingBox(extent)
+            xform = QgsCoordinateTransform(src_crs, wgs84, QgsProject.instance())
+            try:
+                wgs_extent = xform.transformBoundingBox(
+                    extent, handle180Crossover=True
+                )
+            except TypeError:
+                wgs_extent = xform.transformBoundingBox(extent)
             QgsMessageLog.logMessage(
                 f"canvas extent: src_crs={src_label} raw={raw} "
                 f"-> wgs84=("

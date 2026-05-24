@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "../bridge";
 import { formatDMS, parseDMS } from "./dms";
 import { JobProgress } from "./JobProgress";
@@ -8,6 +8,10 @@ interface CatalogItem {
   datetime: string;
   cloud: number | null;
   platform: string | null;
+  bbox: [number, number, number, number] | null;
+  // GeoJSON Polygon / MultiPolygon — typed loosely to avoid pulling in
+  // @types/geojson just for this.
+  geometry: { type: string; coordinates: unknown } | null;
 }
 
 /**
@@ -44,11 +48,36 @@ export function CatalogSearch() {
   const [maxCloud, setMaxCloud] = useState(20);
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<CatalogItem[] | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  // Multi-select: set of item IDs the user has ticked.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // The item currently previewed on the QGIS map (last row clicked, not
+  // necessarily ticked).  Separated from selectedIds because previewing
+  // one footprint to inspect coverage shouldn't force a download.
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const [downloadJobId, setDownloadJobId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  // Per-item download status while a batch is running.
+  const [batchProgress, setBatchProgress] = useState<{
+    done: number;
+    total: number;
+    failed: string[];
+  } | null>(null);
+  // Batch driver state: queue of items left, shared output dir, currently
+  // running item id.  These have to live up here at the top of the
+  // component because all useState calls must run before the first
+  // conditional return / JSX block.
+  const [pendingQueue, setPendingQueue] = useState<CatalogItem[]>([]);
+  const [batchOutDir, setBatchOutDir] = useState<string | null>(null);
+  const [currentItemId, setCurrentItemId] = useState<string | null>(null);
+
+  // Clean up the map preview when the panel unmounts (user navigates away).
+  useEffect(() => {
+    return () => {
+      void invoke("catalog.clear_preview");
+    };
+  }, []);
 
   const currentBbox = (): {
     west: number;
@@ -99,7 +128,9 @@ export function CatalogSearch() {
     setBusy(true);
     setErr(null);
     setResults(null);
-    setSelected(null);
+    setSelectedIds(new Set());
+    setPreviewId(null);
+    void invoke("catalog.clear_preview");
     try {
       const bbox = currentBbox();
       if (
@@ -267,20 +298,44 @@ export function CatalogSearch() {
           <div className="px-3 py-2 flex items-center justify-between border-b border-bg-2">
             <span className="text-xs text-fg-muted">
               {results.length} item{results.length === 1 ? "" : "s"} found
-              {selected && <span className="ml-2 text-accent">— 1 selected</span>}
+              {selectedIds.size > 0 && (
+                <span className="ml-2 text-accent">
+                  — {selectedIds.size} selected
+                </span>
+              )}
+              {previewId && (
+                <span className="ml-2 text-fg-muted/70">
+                  · previewing on map
+                </span>
+              )}
             </span>
-            <button
-              onClick={() => downloadSelected()}
-              disabled={!selected || downloading}
-              className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
-            >
-              {downloading ? "Downloading…" : "Download selected as COG…"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => toggleAll()}
+                className="px-2 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded text-xs"
+              >
+                {selectedIds.size === results.length && results.length > 0
+                  ? "Clear all"
+                  : "Select all"}
+              </button>
+              <button
+                onClick={() => downloadBatch()}
+                disabled={selectedIds.size === 0 || downloading}
+                className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
+              >
+                {downloading
+                  ? "Downloading…"
+                  : `Download ${selectedIds.size || ""} as COG${
+                      selectedIds.size > 1 ? "s" : ""
+                    }…`}
+              </button>
+            </div>
           </div>
           <div className="max-h-72 overflow-auto">
             <table className="w-full text-xs">
               <thead className="bg-bg-2 sticky top-0">
                 <tr className="text-fg-muted">
+                  <th className="w-8 px-2 py-1.5"></th>
                   <th className="text-left font-normal px-3 py-1.5">ID</th>
                   <th className="text-left font-normal px-3 py-1.5">Datetime</th>
                   <th className="text-right font-normal px-3 py-1.5">Cloud %</th>
@@ -291,7 +346,7 @@ export function CatalogSearch() {
                 {results.length === 0 && (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="text-center text-fg-muted py-4"
                     >
                       No items matched.  Widen the date range or cloud cap.
@@ -299,16 +354,28 @@ export function CatalogSearch() {
                   </tr>
                 )}
                 {results.map((it) => {
-                  const active = selected === it.id;
+                  const checked = selectedIds.has(it.id);
+                  const active = previewId === it.id;
                   return (
                     <tr
                       key={it.id}
-                      onClick={() => setSelected(it.id)}
+                      onClick={() => previewItem(it)}
                       className={
                         "cursor-pointer border-t border-bg-2 " +
                         (active ? "bg-accent/20 text-fg" : "hover:bg-bg-2")
                       }
                     >
+                      <td
+                        className="px-2 py-1.5 text-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSelect(it.id)}
+                          aria-label={`select ${it.id}`}
+                        />
+                      </td>
                       <td className="px-3 py-1.5 font-mono truncate max-w-[16rem]">
                         {it.id}
                       </td>
@@ -327,55 +394,157 @@ export function CatalogSearch() {
               </tbody>
             </table>
           </div>
+          <p className="px-3 py-1.5 border-t border-bg-2 text-fg-muted text-xs">
+            Tick the checkbox to queue for download.  Click a row to preview
+            its actual footprint on the map (cyan outline) — useful for
+            spotting scenes whose coverage barely overlaps your AOI.
+          </p>
+        </div>
+      )}
+
+      {batchProgress && (
+        <div className="mt-3 text-xs text-fg-muted">
+          Batch: {batchProgress.done}/{batchProgress.total} done
+          {batchProgress.failed.length > 0 && (
+            <span className="text-danger ml-2">
+              · {batchProgress.failed.length} failed
+            </span>
+          )}
         </div>
       )}
 
       <JobProgress
         jobId={downloadJobId}
-        onComplete={() => setDownloading(false)}
-        onFailed={(e) => {
-          setDownloading(false);
-          setErr(e);
-        }}
+        onComplete={() => onItemComplete(true)}
+        onFailed={(e) => onItemComplete(false, e)}
       />
     </section>
   );
 
-  async function downloadSelected() {
-    if (!selected) return;
-    setErr(null);
-    setDownloading(true);
-    const r = await invoke<{ path: string }>("dialog.save_file", {
-      default: `${selected}.tif`,
-      title: "Save as COG",
-      filter: "Cloud-Optimised GeoTIFF (*.tif)",
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    if (!r.ok || !r.result?.path) {
-      setDownloading(false);
-      return;
+  }
+
+  function toggleAll() {
+    setSelectedIds((prev) =>
+      prev.size === (results?.length ?? 0)
+        ? new Set()
+        : new Set((results ?? []).map((it) => it.id)),
+    );
+  }
+
+  async function previewItem(it: CatalogItem) {
+    setPreviewId(it.id);
+    if (!it.geometry && !it.bbox) return;
+    const r = await invoke("catalog.preview_footprint", {
+      item_id: it.id,
+      geometry: it.geometry ?? null,
+      bbox: it.bbox ?? null,
+    });
+    if (!r.ok) {
+      // Non-fatal — log but don't block download flow.
+      console.warn("[catalog] preview_footprint failed:", r.error);
     }
-    const out_path = r.result.path;
+  }
+
+  async function downloadBatch() {
+    if (selectedIds.size === 0 || !results) return;
+    setErr(null);
+    const queue = results.filter((it) => selectedIds.has(it.id));
+    if (queue.length === 0) return;
+
+    // For batch downloads, ask once for an output FOLDER and auto-name
+    // files by item_id.  Single-item downloads keep the old save-file
+    // dialog so users can choose a specific filename.
+    let out_dir: string | null = null;
+    if (queue.length > 1) {
+      const r = await invoke<{ path: string }>("dialog.open_directory", {
+        title: "Save downloads to folder",
+      });
+      if (!r.ok || !r.result?.path) return;
+      out_dir = r.result.path;
+    }
+
+    setDownloading(true);
+    setBatchProgress({ done: 0, total: queue.length, failed: [] });
+    setBatchOutDir(out_dir);
+    setPendingQueue(queue.slice(1));
+    await startDownload(queue[0], out_dir);
+  }
+
+  async function startDownload(it: CatalogItem, outDir: string | null) {
     let bbox;
     try {
       bbox = currentBbox();
     } catch (e) {
-      setDownloading(false);
+      finishBatch();
       setErr((e as Error).message);
       return;
     }
+
+    let out_path: string;
+    if (outDir) {
+      out_path = `${outDir.replace(/[/\\]+$/, "")}/${it.id}.tif`;
+    } else {
+      const r = await invoke<{ path: string }>("dialog.save_file", {
+        default: `${it.id}.tif`,
+        title: "Save as COG",
+        filter: "Cloud-Optimised GeoTIFF (*.tif)",
+      });
+      if (!r.ok || !r.result?.path) {
+        finishBatch();
+        return;
+      }
+      out_path = r.result.path;
+    }
+
+    setCurrentItemId(it.id);
     const dl = await invoke<{ job_id: string }>("catalog.download", {
       endpoint,
       collection,
-      item_id: selected,
+      item_id: it.id,
       bbox,
       out_path,
     });
     if (dl.ok && dl.result?.job_id) {
       setDownloadJobId(dl.result.job_id);
     } else {
-      setDownloading(false);
-      setErr(dl.error ?? "catalog.download failed");
+      onItemComplete(false, dl.error ?? "catalog.download failed");
     }
+  }
+
+  function onItemComplete(ok: boolean, error?: string) {
+    setDownloadJobId(null);
+    setBatchProgress((p) =>
+      p
+        ? {
+            done: p.done + 1,
+            total: p.total,
+            failed: ok && currentItemId ? p.failed : [...p.failed, currentItemId ?? "?"],
+          }
+        : null,
+    );
+    if (!ok && error) setErr(error);
+
+    if (pendingQueue.length === 0) {
+      finishBatch();
+      return;
+    }
+    const [next, ...rest] = pendingQueue;
+    setPendingQueue(rest);
+    void startDownload(next, batchOutDir);
+  }
+
+  function finishBatch() {
+    setDownloading(false);
+    setCurrentItemId(null);
+    setPendingQueue([]);
+    setBatchOutDir(null);
   }
 }
 

@@ -44,6 +44,8 @@ class Controllers:
         # Catalogue + canvas (Phase 1).
         self._handlers["catalog.search"] = _catalog.search
         self._handlers["catalog.download"] = _catalog.download
+        self._handlers["catalog.preview_footprint"] = _canvas.preview_footprint
+        self._handlers["catalog.clear_preview"] = _canvas.clear_preview
         self._handlers["canvas.bbox"] = _canvas.bbox
 
         # Layer + dialog helpers (used by every panel that picks a layer or path).
