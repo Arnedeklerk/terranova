@@ -3,13 +3,22 @@ import { invoke } from "../bridge";
 import { JobProgress } from "./JobProgress";
 
 /**
- * Classify scene — Phase 1, parity with the Qt dialog.
+ * Classify scene — supervised + unsupervised flows behind a top-level
+ * mode toggle.
  *
- * Picks: input raster (from currently-loaded raster layers), training vector
- * (from loaded vector layers) and its class field, classifier kind, ensemble
- * size, CV folds, output path.  Kicks off classify.run on Python, then
- * streams progress + completion via the JobProgress component.
+ * Supervised (default): pick input raster, training vector (from loaded
+ * layers or a file on disk), class field, classifier, hyperparameters,
+ * output path.  Kicks off classify.run with mode=supervised.
+ *
+ * Unsupervised: pick input raster, choose K-Means or ISODATA, target
+ * cluster count, max iterations, output path.  No training data needed
+ * — the clusterer fits on a random subsample of raster pixels.
+ *
+ * Both modes stream task.progress / task.complete / task.failed events
+ * back through the same <JobProgress />.
  */
+
+type Mode = "supervised" | "unsupervised";
 
 interface LayerInfo {
   name: string;
@@ -27,7 +36,22 @@ const CLASSIFIERS: Array<{ label: string; value: string }> = [
   { label: "Multi-layer Perceptron", value: "mlp" },
 ];
 
+const UNSUPERVISED_ALGS: Array<{ label: string; value: string; hint: string }> = [
+  {
+    label: "K-Means (nearest centroid)",
+    value: "kmeans",
+    hint: "Fixed K clusters; each pixel goes to its nearest cluster centroid.",
+  },
+  {
+    label: "ISODATA",
+    value: "isodata",
+    hint: "K-Means with iterative split (on high variance) + merge (on close centroids); final K can differ from the target.",
+  },
+];
+
 export function Classify() {
+  const [mode, setMode] = useState<Mode>("supervised");
+
   const [rasters, setRasters] = useState<LayerInfo[]>([]);
   const [vectors, setVectors] = useState<LayerInfo[]>([]);
   const [fields, setFields] = useState<string[]>([]);
@@ -39,6 +63,11 @@ export function Classify() {
   const [nEstimators, setNEstimators] = useState(300);
   const [cvFolds, setCvFolds] = useState(5);
   const [outputPath, setOutputPath] = useState<string>("");
+
+  // Unsupervised-only fields
+  const [algorithm, setAlgorithm] = useState("kmeans");
+  const [nClusters, setNClusters] = useState(6);
+  const [maxIter, setMaxIter] = useState(50);
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -79,8 +108,12 @@ export function Classify() {
 
   const pickOutput = async () => {
     const r = await invoke<{ path: string }>("dialog.save_file", {
-      default: "terranova_classification.tif",
-      title: "Save classified COG",
+      default:
+        mode === "supervised"
+          ? "terranova_classification.tif"
+          : "terranova_clusters.tif",
+      title:
+        mode === "supervised" ? "Save classified COG" : "Save clustered COG",
       filter: "Cloud-Optimised GeoTIFF (*.tif)",
     });
     if (r.ok && r.result?.path) setOutputPath(r.result.path);
@@ -111,22 +144,44 @@ export function Classify() {
   };
 
   const run = async () => {
-    if (!rasterSrc || !vectorSrc || !classField || !outputPath) {
-      setErr("Pick raster, vector, class field, and output path.");
+    if (!rasterSrc || !outputPath) {
+      setErr("Pick an input raster and an output path.");
+      return;
+    }
+    if (mode === "supervised" && (!vectorSrc || !classField)) {
+      setErr("Supervised mode needs a training vector + class field.");
+      return;
+    }
+    if (mode === "unsupervised" && nClusters < 2) {
+      setErr("At least 2 clusters required.");
       return;
     }
     setErr(null);
     setBusy(true);
     setJobId(null);
-    const r = await invoke<{ job_id: string }>("classify.run", {
-      raster_path: rasterSrc,
-      vector_path: vectorSrc,
-      class_field: classField,
-      classifier,
-      n_estimators: nEstimators,
-      cv_folds: cvFolds,
-      output_path: outputPath,
-    });
+
+    const payload =
+      mode === "supervised"
+        ? {
+            mode,
+            raster_path: rasterSrc,
+            vector_path: vectorSrc,
+            class_field: classField,
+            classifier,
+            n_estimators: nEstimators,
+            cv_folds: cvFolds,
+            output_path: outputPath,
+          }
+        : {
+            mode,
+            raster_path: rasterSrc,
+            output_path: outputPath,
+            algorithm,
+            n_clusters: nClusters,
+            max_iter: maxIter,
+          };
+
+    const r = await invoke<{ job_id: string }>("classify.run", payload);
     if (r.ok && r.result?.job_id) {
       setJobId(r.result.job_id);
     } else {
@@ -146,10 +201,40 @@ export function Classify() {
           Refresh layers ↻
         </button>
       </div>
+      {/* Mode toggle — supervised (default) needs labelled training
+          polygons; unsupervised clusters pixels with no labels. */}
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-xs text-fg-muted">Mode</span>
+        <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
+          <button
+            onClick={() => setMode("supervised")}
+            className={
+              "px-3 py-1 text-xs border-r border-bg-2 " +
+              (mode === "supervised"
+                ? "bg-accent text-white"
+                : "hover:bg-bg-0")
+            }
+          >
+            Supervised
+          </button>
+          <button
+            onClick={() => setMode("unsupervised")}
+            className={
+              "px-3 py-1 text-xs " +
+              (mode === "unsupervised"
+                ? "bg-accent text-white"
+                : "hover:bg-bg-0")
+            }
+          >
+            Unsupervised
+          </button>
+        </div>
+      </div>
+
       <p className="text-fg-muted text-sm mb-4">
-        Trains a classifier on every pixel covered by your training polygons
-        and applies it to the input raster.  Open the Log Messages panel for
-        training-set diagnostics as the task runs.
+        {mode === "supervised"
+          ? "Trains a classifier on every pixel covered by your training polygons and applies it to the input raster.  Open the Log Messages panel for training-set diagnostics as the task runs."
+          : "Clusters the raster's pixels into a chosen number of classes without any labelled training data.  K-Means uses fixed-K nearest-centroid assignment; ISODATA also iteratively splits high-variance clusters and merges close ones, so the final cluster count can differ from your target."}
       </p>
 
       <div className="grid grid-cols-1 gap-3">
@@ -168,89 +253,155 @@ export function Classify() {
           </select>
         </Field>
 
-        <Field
-          label="Training vector (polygons / points)"
-          hint="Pick a loaded layer, or Browse to a file on disk (.gpkg, .shp, .geojson…)"
-        >
-          <div className="flex gap-2">
-            <select
-              value={vectorSrc}
-              onChange={(e) => setVectorSrc(e.target.value)}
-              className="flex-1 bg-bg-1 border border-bg-2 rounded px-2 py-1"
+        {/* SUPERVISED ----------------------------------------------------- */}
+        {mode === "supervised" && (
+          <>
+            <Field
+              label="Training vector (polygons / points)"
+              hint="Pick a loaded layer, or Browse to a file on disk (.gpkg, .shp, .geojson…)"
             >
-              <option value="">— pick a vector layer —</option>
-              {vectors.map((l) => (
-                <option key={l.source} value={l.source}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={pickVectorFile}
-              className="px-3 py-1 bg-bg-1 hover:bg-bg-2 border border-bg-2 rounded text-sm whitespace-nowrap"
-              title="Pick a vector file from disk; no need to load it as a layer first"
+              <div className="flex gap-2">
+                <select
+                  value={vectorSrc}
+                  onChange={(e) => setVectorSrc(e.target.value)}
+                  className="flex-1 bg-bg-1 border border-bg-2 rounded px-2 py-1"
+                >
+                  <option value="">— pick a vector layer —</option>
+                  {vectors.map((l) => (
+                    <option key={l.source} value={l.source}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={pickVectorFile}
+                  className="px-3 py-1 bg-bg-1 hover:bg-bg-2 border border-bg-2 rounded text-sm whitespace-nowrap"
+                  title="Pick a vector file from disk; no need to load it as a layer first"
+                >
+                  Browse…
+                </button>
+              </div>
+            </Field>
+
+            <Field label="Class field on the vector layer">
+              <select
+                value={classField}
+                onChange={(e) => setClassField(e.target.value)}
+                disabled={!fields.length}
+                className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 disabled:opacity-50"
+              >
+                {!fields.length && <option value="">— pick a vector first —</option>}
+                {fields.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Classifier">
+                <select
+                  value={classifier}
+                  onChange={(e) => setClassifier(e.target.value)}
+                  className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
+                >
+                  {CLASSIFIERS.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                label="Trees / boosting rounds"
+                hint="Ensemble size — not the training-sample count.  100–500 is the sweet spot."
+              >
+                <input
+                  type="number"
+                  value={nEstimators}
+                  min={10}
+                  max={2000}
+                  step={50}
+                  onChange={(e) => setNEstimators(parseInt(e.target.value, 10) || 0)}
+                  className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+                />
+              </Field>
+
+              <Field label="Cross-validation folds">
+                <input
+                  type="number"
+                  value={cvFolds}
+                  min={2}
+                  max={10}
+                  onChange={(e) => setCvFolds(parseInt(e.target.value, 10) || 0)}
+                  className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+                />
+              </Field>
+            </div>
+          </>
+        )}
+
+        {/* UNSUPERVISED --------------------------------------------------- */}
+        {mode === "unsupervised" && (
+          <>
+            <Field
+              label="Algorithm"
+              hint={
+                UNSUPERVISED_ALGS.find((a) => a.value === algorithm)?.hint ?? ""
+              }
             >
-              Browse…
-            </button>
-          </div>
-        </Field>
+              <select
+                value={algorithm}
+                onChange={(e) => setAlgorithm(e.target.value)}
+                className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
+              >
+                {UNSUPERVISED_ALGS.map((a) => (
+                  <option key={a.value} value={a.value}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-        <Field label="Class field on the vector layer">
-          <select
-            value={classField}
-            onChange={(e) => setClassField(e.target.value)}
-            disabled={!fields.length}
-            className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 disabled:opacity-50"
-          >
-            {!fields.length && <option value="">— pick a vector first —</option>}
-            {fields.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Classifier">
-            <select
-              value={classifier}
-              onChange={(e) => setClassifier(e.target.value)}
-              className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
-            >
-              {CLASSIFIERS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field
-            label="Trees / boosting rounds"
-            hint="Ensemble size — not the training-sample count.  100–500 is the sweet spot."
-          >
-            <input
-              type="number"
-              value={nEstimators}
-              min={10}
-              max={2000}
-              step={50}
-              onChange={(e) => setNEstimators(parseInt(e.target.value, 10) || 0)}
-              className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
-            />
-          </Field>
-
-          <Field label="Cross-validation folds">
-            <input
-              type="number"
-              value={cvFolds}
-              min={2}
-              max={10}
-              onChange={(e) => setCvFolds(parseInt(e.target.value, 10) || 0)}
-              className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
-            />
-          </Field>
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label={
+                  algorithm === "isodata"
+                    ? "Target clusters (final K may differ)"
+                    : "Number of clusters (K)"
+                }
+              >
+                <input
+                  type="number"
+                  value={nClusters}
+                  min={2}
+                  max={64}
+                  onChange={(e) =>
+                    setNClusters(parseInt(e.target.value, 10) || 0)
+                  }
+                  className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+                />
+              </Field>
+              <Field
+                label="Max iterations"
+                hint="ISODATA needs more iterations to converge through splits/merges; K-Means usually stabilises in <30."
+              >
+                <input
+                  type="number"
+                  value={maxIter}
+                  min={5}
+                  max={500}
+                  step={5}
+                  onChange={(e) =>
+                    setMaxIter(parseInt(e.target.value, 10) || 0)
+                  }
+                  className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+                />
+              </Field>
+            </div>
+          </>
+        )}
 
         <Field label="Output COG">
           <div className="flex gap-2">
@@ -277,7 +428,11 @@ export function Classify() {
           disabled={busy}
           className="px-3 py-1.5 bg-accent text-white rounded text-sm disabled:opacity-50"
         >
-          {busy ? "Running…" : "Train + classify"}
+          {busy
+            ? "Running…"
+            : mode === "supervised"
+              ? "Train + classify"
+              : "Cluster"}
         </button>
       </div>
 

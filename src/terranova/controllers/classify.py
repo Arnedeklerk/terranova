@@ -22,28 +22,69 @@ from . import _keepalive
 
 
 def run(payload: dict[str, Any]) -> dict[str, Any]:
-    """Start a classify job.  Returns the job_id immediately."""
+    """Start a classify job.  Branches on ``mode`` (default 'supervised').
+
+    Supervised payload (existing):
+      ``raster_path``, ``vector_path``, ``class_field``, ``output_path``,
+      ``classifier``, ``n_estimators``, ``cv_folds``.
+
+    Unsupervised payload (new):
+      ``raster_path``, ``output_path``, ``algorithm`` ('kmeans' or
+      'isodata'), ``n_clusters``, ``max_iter``.
+
+    Returns ``{"job_id": "..."}`` immediately regardless of mode; the
+    React panel filters task events by job id.
+    """
     from qgis.core import QgsApplication
 
+    mode = str(payload.get("mode", "supervised"))
     job_id = str(uuid.uuid4())
-    try:
-        raster_path = Path(payload["raster_path"])
-        vector_path = Path(payload["vector_path"])
-        class_field = str(payload["class_field"])
-        output_path = Path(payload["output_path"])
-    except KeyError as exc:
-        raise ValueError(f"missing required field: {exc}") from exc
 
-    task = _build_task(
-        job_id=job_id,
-        raster_path=raster_path,
-        vector_path=vector_path,
-        class_field=class_field,
-        classifier=str(payload.get("classifier", "random_forest")),
-        n_estimators=int(payload.get("n_estimators", 300)),
-        cv_folds=int(payload.get("cv_folds", 5)),
-        output_path=output_path,
-    )
+    if mode == "supervised":
+        try:
+            raster_path = Path(payload["raster_path"])
+            vector_path = Path(payload["vector_path"])
+            class_field = str(payload["class_field"])
+            output_path = Path(payload["output_path"])
+        except KeyError as exc:
+            raise ValueError(f"missing required field: {exc}") from exc
+
+        task = _build_task(
+            job_id=job_id,
+            raster_path=raster_path,
+            vector_path=vector_path,
+            class_field=class_field,
+            classifier=str(payload.get("classifier", "random_forest")),
+            n_estimators=int(payload.get("n_estimators", 300)),
+            cv_folds=int(payload.get("cv_folds", 5)),
+            output_path=output_path,
+        )
+    elif mode == "unsupervised":
+        try:
+            raster_path = Path(payload["raster_path"])
+            output_path = Path(payload["output_path"])
+        except KeyError as exc:
+            raise ValueError(f"missing required field: {exc}") from exc
+        algorithm = str(payload.get("algorithm", "kmeans"))
+        if algorithm not in {"kmeans", "isodata"}:
+            raise ValueError(
+                f"unknown unsupervised algorithm: {algorithm!r} "
+                "(expected 'kmeans' or 'isodata')"
+            )
+        task = _build_unsupervised_task(
+            job_id=job_id,
+            raster_path=raster_path,
+            output_path=output_path,
+            algorithm=algorithm,
+            n_clusters=int(payload.get("n_clusters", 5)),
+            max_iter=int(payload.get("max_iter", 50)),
+            sample_size=int(payload.get("sample_size", 100_000)),
+        )
+    else:
+        raise ValueError(
+            f"unknown classify mode: {mode!r} (expected 'supervised' or 'unsupervised')"
+        )
+
     _keepalive.hold(job_id, task)
     QgsApplication.taskManager().addTask(task)
     return {"job_id": job_id}
@@ -197,3 +238,113 @@ def _emit(task: Any, percent: float, status: str) -> None:
     )
     if status:
         QgsMessageLog.logMessage(status, "Terranova", Qgis.MessageLevel.Info)
+
+
+# --------------------------------------------------------------------------- #
+# Unsupervised path                                                           #
+# --------------------------------------------------------------------------- #
+def _build_unsupervised_task(**kwargs: Any):  # type: ignore[no-untyped-def]
+    from qgis.core import QgsTask
+
+    class _UnsupervisedJobTask(QgsTask):
+        def __init__(self) -> None:
+            super().__init__(
+                f"Terranova: cluster {kwargs['raster_path'].name}",
+                QgsTask.CanCancel,
+            )
+            self.job_id: str = kwargs["job_id"]
+            self.raster_path: Path = kwargs["raster_path"]
+            self.output_path: Path = kwargs["output_path"]
+            self.algorithm: str = kwargs["algorithm"]
+            self.n_clusters: int = kwargs["n_clusters"]
+            self.max_iter: int = kwargs["max_iter"]
+            self.sample_size: int = kwargs["sample_size"]
+            self.result_path: Path | None = None
+            self.error_text: str | None = None
+
+        def run(self) -> bool:
+            return _do_unsupervised(self)
+
+        def finished(self, ok: bool) -> None:  # noqa: N802
+            _on_finished(self, ok)
+
+    return _UnsupervisedJobTask()
+
+
+def _do_unsupervised(task: Any) -> bool:
+    """Worker body for the K-Means / ISODATA path.  Same lifecycle as supervised."""
+    from qgis.core import Qgis, QgsMessageLog
+
+    try:
+        from ..core.ml.classical import predict_to_cog
+        from ..core.ml.unsupervised import fit_unsupervised
+
+        _emit(
+            task,
+            2,
+            f"Sampling raster + fitting {task.algorithm.upper()} "
+            f"(target k={task.n_clusters})…",
+        )
+        estimator = fit_unsupervised(
+            kind=task.algorithm,  # type: ignore[arg-type]
+            raster_path=task.raster_path,
+            n_clusters=task.n_clusters,
+            max_iter=task.max_iter,
+            sample_size=task.sample_size,
+            progress_cb=lambda p: _emit(task, 2 + p * 28, ""),
+        )
+        if task.isCanceled():
+            return False
+
+        # ISODATA's final cluster count can differ from the target after
+        # split/merge — log it so the user isn't surprised the output
+        # raster has 4 or 7 classes when they asked for 5.
+        final_k = getattr(
+            estimator,
+            "n_clusters",
+            getattr(estimator, "n_clusters_", None),
+        )
+        if final_k is not None:
+            QgsMessageLog.logMessage(
+                f"{task.algorithm.upper()} fitted with {int(final_k)} clusters.",
+                "Terranova",
+                Qgis.MessageLevel.Info,
+            )
+
+        _emit(task, 30, "Applying clusterer to the full raster…")
+        # Cluster IDs are zero-based; nodata_output=0 would collide.
+        # Shift by 1 via a wrapper estimator so 0 stays reserved for
+        # nodata in the output raster.
+        shifted = _ShiftedEstimator(estimator, shift=1)
+        task.result_path = predict_to_cog(
+            shifted,
+            task.raster_path,
+            task.output_path,
+            progress_cb=lambda p: _emit(task, 30 + p * 70, ""),
+            cancel_cb=task.isCanceled,
+        )
+        return True
+    except Exception as exc:  # noqa: BLE001 — task boundary
+        task.error_text = f"{type(exc).__name__}: {exc}"
+        QgsMessageLog.logMessage(
+            f"Unsupervised classification failed: {exc!r}",
+            "Terranova",
+            Qgis.MessageLevel.Critical,
+        )
+        return False
+
+
+class _ShiftedEstimator:
+    """Wrap a sklearn-shaped estimator, adding ``shift`` to every prediction.
+
+    Unsupervised cluster IDs are zero-based; the output COG reserves 0 for
+    nodata.  Shifting predictions by +1 keeps cluster 0 visible without
+    changing the underlying fit.
+    """
+
+    def __init__(self, inner: Any, shift: int) -> None:
+        self._inner = inner
+        self._shift = int(shift)
+
+    def predict(self, X: Any) -> Any:
+        return self._inner.predict(X) + self._shift
