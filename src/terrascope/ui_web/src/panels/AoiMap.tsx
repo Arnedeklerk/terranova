@@ -24,24 +24,39 @@ export interface Bbox {
   north: number;
 }
 
+export interface FootprintSpec {
+  id: string;
+  geometry: { type: string; coordinates: unknown };
+  /** Hex outline colour, e.g. ``#FFD43B``.  Fill is the same colour at ~15% alpha. */
+  color: string;
+  /** If true, draw thicker stroke — used for the currently-previewed row. */
+  active?: boolean;
+}
+
 interface Props {
   /** Current AOI, drawn as an orange dashed rectangle.  `null` = none. */
   aoi: Bbox | null;
-  /** Currently-previewed scene footprint, drawn as a cyan polygon. */
-  footprint: { type: string; coordinates: unknown } | null;
+  /**
+   * Footprints to draw with semi-transparent fills.  Overlapping regions
+   * appear naturally darker because alpha compounds — the Earth-Explorer
+   * "which scenes cover my AOI" effect.  Pass an empty array for none.
+   */
+  footprints: FootprintSpec[];
   /** Called when the user finishes drawing a new rectangle. */
   onAoiChange(b: Bbox): void;
   /** Optional fixed height — defaults to 280px. */
   height?: number;
 }
 
-export function AoiMap({ aoi, footprint, onAoiChange, height = 280 }: Props) {
+export function AoiMap({ aoi, footprints, onAoiChange, height = 280 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   // Layers we control — held in refs so we can replace cleanly on prop
   // changes without React tree churn.
   const aoiLayerRef = useRef<L.Rectangle | null>(null);
-  const footprintLayerRef = useRef<L.GeoJSON | null>(null);
+  // One L.GeoJSON per footprint id; diffed against the incoming prop on
+  // every render so we don't tear-down/rebuild every layer each time.
+  const footprintLayersRef = useRef<Map<string, L.GeoJSON>>(new Map());
   const drawingRef = useRef<{
     active: boolean;
     start: L.LatLng | null;
@@ -157,25 +172,43 @@ export function AoiMap({ aoi, footprint, onAoiChange, height = 280 }: Props) {
     }
   }, [aoi]);
 
-  // Footprint preview (cyan solid).
+  // Footprints: one layer per id, diffed against the prop.  Overlapping
+  // semi-transparent fills produce a natural Earth-Explorer-style
+  // darkening where scenes overlap.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (footprintLayerRef.current) {
-      footprintLayerRef.current.remove();
-      footprintLayerRef.current = null;
+    const current = footprintLayersRef.current;
+    const incoming = new Map(footprints.map((f) => [f.id, f]));
+
+    // Remove footprints that are no longer in the prop list.
+    for (const [id, layer] of current) {
+      if (!incoming.has(id)) {
+        layer.remove();
+        current.delete(id);
+      }
     }
-    if (!footprint) return;
-    footprintLayerRef.current = L.geoJSON(footprint as never, {
-      style: {
-        color: "#40C4FF",
-        weight: 2,
+    // Add or restyle the rest.
+    for (const spec of footprints) {
+      const existing = current.get(spec.id);
+      const style: L.PathOptions = {
+        color: spec.color,
+        weight: spec.active ? 3 : 1.5,
         fill: true,
-        fillColor: "#40C4FF",
-        fillOpacity: 0.1,
-      },
-    }).addTo(map);
-  }, [footprint]);
+        fillColor: spec.color,
+        // ~15% fill so 2–3 overlapping scenes still let the basemap
+        // through but stacked-up regions get visibly darker.
+        fillOpacity: spec.active ? 0.25 : 0.15,
+        opacity: spec.active ? 1.0 : 0.8,
+      };
+      if (existing) {
+        existing.setStyle(style);
+      } else {
+        const layer = L.geoJSON(spec.geometry as never, { style }).addTo(map);
+        current.set(spec.id, layer);
+      }
+    }
+  }, [footprints]);
 
   const startDrawing = () => {
     drawingRef.current.active = true;

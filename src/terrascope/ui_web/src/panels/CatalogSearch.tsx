@@ -2,7 +2,28 @@ import { useMemo, useState } from "react";
 import { invoke } from "../bridge";
 import { formatDMS, parseDMS } from "./dms";
 import { JobProgress } from "./JobProgress";
-import { AoiMap, type Bbox } from "./AoiMap";
+import { AoiMap, type Bbox, type FootprintSpec } from "./AoiMap";
+
+// Cycling palette for ticked-footprint overlays.  Picked for distinguishability
+// against an OSM basemap and accessibility — eight high-saturation hues at
+// roughly equal luminance so no scene's footprint "vanishes" into the map.
+// Order chosen so adjacent picks (typical user behaviour — tick a few in a
+// row) get maximally different colours.
+const PALETTE = [
+  "#FFD43B", // amber
+  "#F06292", // pink
+  "#66BB6A", // green
+  "#AB47BC", // purple
+  "#26C6DA", // teal
+  "#FF7043", // orange
+  "#5C6BC0", // indigo
+  "#EF5350", // red
+];
+const PREVIEW_COLOR = "#40C4FF"; // cyan — distinct from the palette
+
+function colorForIndex(i: number): string {
+  return PALETTE[i % PALETTE.length];
+}
 
 interface CatalogItem {
   id: string;
@@ -101,13 +122,27 @@ export function CatalogSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nw.lat, nw.lon, se.lat, se.lon, nwDms.lat, nwDms.lon, seDms.lat, seDms.lon, format]);
 
-  // Footprint currently previewed on the embedded map (single item, the
-  // last clicked row).
-  const previewFootprint = useMemo(() => {
-    if (!results || !previewId) return null;
-    const it = results.find((x) => x.id === previewId);
-    return it?.geometry ?? null;
-  }, [results, previewId]);
+  // Footprints to draw on the embedded map: every ticked item gets a
+  // stable colour from the palette (based on its row index, so colours
+  // don't shuffle as you tick/untick), plus the currently-previewed row
+  // gets an "active" highlight.  Overlapping fills compound naturally.
+  const mapFootprints = useMemo<FootprintSpec[]>(() => {
+    if (!results) return [];
+    const out: FootprintSpec[] = [];
+    results.forEach((it, idx) => {
+      const ticked = selectedIds.has(it.id);
+      const isPreview = previewId === it.id;
+      if (!ticked && !isPreview) return;
+      if (!it.geometry) return;
+      out.push({
+        id: it.id,
+        geometry: it.geometry,
+        color: isPreview && !ticked ? PREVIEW_COLOR : colorForIndex(idx),
+        active: isPreview,
+      });
+    });
+    return out;
+  }, [results, selectedIds, previewId]);
 
   /** Map → fields.  Called when the user drags a rectangle on the map. */
   const onMapAoiChange = (b: Bbox) => {
@@ -303,7 +338,7 @@ export function CatalogSearch() {
             can verify what they're searching for without flipping windows.  */}
         <AoiMap
           aoi={mapAoi}
-          footprint={previewFootprint}
+          footprints={mapFootprints}
           onAoiChange={onMapAoiChange}
         />
       </div>
@@ -409,9 +444,10 @@ export function CatalogSearch() {
                     </td>
                   </tr>
                 )}
-                {results.map((it) => {
+                {results.map((it, idx) => {
                   const checked = selectedIds.has(it.id);
                   const active = previewId === it.id;
+                  const swatch = colorForIndex(idx);
                   return (
                     <tr
                       key={it.id}
@@ -433,6 +469,17 @@ export function CatalogSearch() {
                         />
                       </td>
                       <td className="px-3 py-1.5 font-mono truncate max-w-[16rem]">
+                        {/* Coloured pip when ticked so the table row visibly
+                            corresponds to its footprint on the map.  Hidden
+                            (invisible width-stable spacer) otherwise so the
+                            ID column doesn't shift left when ticking. */}
+                        <span
+                          className="inline-block w-2 h-2 rounded-full mr-2 align-middle"
+                          style={{
+                            backgroundColor: checked ? swatch : "transparent",
+                          }}
+                          aria-hidden="true"
+                        />
                         {it.id}
                       </td>
                       <td className="px-3 py-1.5 font-mono">
@@ -451,9 +498,10 @@ export function CatalogSearch() {
             </table>
           </div>
           <p className="px-3 py-1.5 border-t border-bg-2 text-fg-muted text-xs">
-            Tick the checkbox to queue for download.  Click a row to preview
-            its actual footprint on the map (cyan outline) — useful for
-            spotting scenes whose coverage barely overlaps your AOI.
+            Tick the checkbox to queue for download AND show the scene
+            footprint on the map (each ticked scene gets a distinct colour;
+            overlapping coverage shows darker).  Click a row to preview a
+            single scene in cyan without committing to a download.
           </p>
         </div>
       )}
