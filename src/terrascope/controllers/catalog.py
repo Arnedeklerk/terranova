@@ -20,15 +20,18 @@ def search(payload: dict[str, Any]) -> dict[str, Any]:
     cfg = CatalogSearch.model_validate(payload)
     client = _open_client(cfg.endpoint)
     bbox = cfg.bbox.as_tuple()
+    dt_range = cfg.datetime.as_stac()
+    _log_search(cfg, bbox, dt_range)
     items = list(
         stac.search_s2_l2a(
             client,
             bbox=bbox,
-            datetime=cfg.datetime.as_stac(),
+            datetime=dt_range,
             max_cloud=cfg.max_cloud,
             limit=cfg.limit,
         )
     )
+    _log_search_result(cfg, bbox, dt_range, len(items))
     return {
         "items": [
             {
@@ -41,6 +44,58 @@ def search(payload: dict[str, Any]) -> dict[str, Any]:
         ],
         "count": len(items),
     }
+
+
+def _log_search(cfg: CatalogSearch, bbox: tuple, dt_range: str) -> None:
+    """Mirror every search to QGIS log so users can self-diagnose 0-item runs."""
+    try:
+        from qgis.core import Qgis, QgsMessageLog
+
+        QgsMessageLog.logMessage(
+            f"catalog.search: endpoint={cfg.endpoint.value} "
+            f"bbox={bbox} datetime={dt_range} max_cloud={cfg.max_cloud}% "
+            f"limit={cfg.limit}",
+            "TerraScope",
+            Qgis.MessageLevel.Info,
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _log_search_result(
+    cfg: CatalogSearch, bbox: tuple, dt_range: str, n: int
+) -> None:
+    try:
+        from qgis.core import Qgis, QgsMessageLog
+
+        if n == 0:
+            # 0 items is almost always a user-config problem — give them
+            # something concrete to compare against.  Common causes:
+            # AOI in ocean, dates outside any acquisition window, cloud
+            # cover at 0%, NW/SE corners swapped.
+            west, south, east, north = bbox
+            issues = []
+            if west >= east:
+                issues.append("west >= east (NW/SE swapped?)")
+            if south >= north:
+                issues.append("south >= north (NW/SE swapped?)")
+            if cfg.max_cloud == 0:
+                issues.append("max_cloud is 0% — try raising it")
+            hint = ("  Issues: " + ", ".join(issues)) if issues else ""
+            QgsMessageLog.logMessage(
+                f"catalog.search returned 0 items.  bbox={bbox} "
+                f"datetime={dt_range}{hint}",
+                "TerraScope",
+                Qgis.MessageLevel.Warning,
+            )
+        else:
+            QgsMessageLog.logMessage(
+                f"catalog.search returned {n} items.",
+                "TerraScope",
+                Qgis.MessageLevel.Info,
+            )
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def download(payload: dict[str, Any]) -> dict[str, Any]:
