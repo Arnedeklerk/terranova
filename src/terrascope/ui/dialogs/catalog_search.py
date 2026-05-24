@@ -294,12 +294,39 @@ class CatalogSearchDialog(QDialog):
         extent = canvas.extent()
         src_crs = canvas.mapSettings().destinationCrs()
         wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
+        raw = (
+            extent.xMinimum(),
+            extent.yMinimum(),
+            extent.xMaximum(),
+            extent.yMaximum(),
+        )
+        src_label = src_crs.authid() or src_crs.description() or "<unknown>"
         try:
+            if not src_crs.isValid():
+                raise ValueError("canvas has no valid CRS")
             if src_crs.authid() == "EPSG:4326":
                 wgs_extent = extent
             else:
                 xform = QgsCoordinateTransform(src_crs, wgs84, QgsProject.instance())
-                wgs_extent = xform.transformBoundingBox(extent)
+                try:
+                    wgs_extent = xform.transformBoundingBox(
+                        extent, handle180Crossover=True
+                    )
+                except TypeError:
+                    wgs_extent = xform.transformBoundingBox(extent)
+            QgsMessageLog.logMessage(
+                f"canvas extent: src_crs={src_label} raw={raw} "
+                f"-> wgs84=("
+                f"{wgs_extent.xMinimum():.6f}, {wgs_extent.yMinimum():.6f}, "
+                f"{wgs_extent.xMaximum():.6f}, {wgs_extent.yMaximum():.6f})",
+                "TerraScope",
+                Qgis.MessageLevel.Info,
+            )
+            if wgs_extent.xMinimum() >= wgs_extent.xMaximum():
+                raise ValueError(
+                    "canvas extent crosses the antimeridian; "
+                    "STAC bboxes can't span ±180°"
+                )
         except Exception as exc:  # noqa: BLE001
             QgsMessageLog.logMessage(
                 f"Couldn't transform canvas extent to WGS84: {exc!r}",
