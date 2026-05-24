@@ -1,0 +1,71 @@
+name: Pages
+
+# Publishes a single static site to GitHub Pages containing:
+#   /            -> the landing page (web/index.html)
+#   /docs/       -> the mkdocs technical documentation site
+#
+# Runs on every push to main that touches either source.
+#
+# One-time setup: in repo Settings -> Pages, set Source to "GitHub
+# Actions". Without that the deploy step fails and the build does
+# nothing useful.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; queue subsequent runs.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MkDocs
+        run: pip install mkdocs-material
+
+      # Build mkdocs into a subfolder of the staged site so it lives at /docs/.
+      - name: Build mkdocs
+        run: mkdocs build --strict --site-dir _site/docs
+
+      # Copy landing page on top (root /). The two paths don't overlap
+      # because mkdocs went into the /docs subfolder.
+      - name: Stage landing page
+        run: cp -r web/. _site/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

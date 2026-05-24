@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terranova — Earth observation for QGIS</title>
+  <meta
+    name="description"
+    content="Open-source QGIS plugin for STAC catalogue search, classification, and time-series change detection. Modern replacement for SCP."
+  />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+  <meta property="og:title" content="Terranova" />
+  <meta
+    property="og:description"
+    content="Modern Earth observation for QGIS — STAC search, classification, change detection."
+  />
+  <meta property="og:type" content="website" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top">
+      <img src="icon.svg" alt="" width="28" height="28" />
+      <span>Terranova</span>
+    </a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#screenshots">Screenshots</a>
+      <a href="#authors">Authors</a>
+      <a href="#install">Install</a>
+      <a
+        class="header-cta"
+        href="https://github.com/Arnedeklerk/terranova"
+        target="_blank"
+        rel="noopener"
+        >GitHub →</a
+      >
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- HERO ------------------------------------------------------------- -->
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">Open-source · GPL-3.0 · QGIS 3.40+ / 4.x</p>
+        <h1>Earth observation for QGIS.</h1>
+        <p class="lead">
+          Terranova is a modern QGIS plugin for STAC catalogue search,
+          supervised classification, and per-pixel time-series change
+          detection. Built to replace the Semi-Automatic Classification
+          Plugin with a snappier UI and a STAC-first data pipeline.
+        </p>
+        <div class="cta-row">
+          <a
+            class="btn btn-primary"
+            href="https://github.com/Arnedeklerk/terranova"
+            target="_blank"
+            rel="noopener"
+            >Get it on GitHub</a
+          >
+          <a class="btn btn-ghost" href="#install">Install instructions</a>
+        </div>
+      </div>
+      <figure class="hero-shot">
+        <img
+          src="screenshots/01-hero.png"
+          alt="Terranova dock open in QGIS showing the catalogue search panel with an embedded map and result footprints"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+        />
+        <div class="img-placeholder hero-placeholder">
+          <span>screenshots/01-hero.png</span>
+          <small>Drop a hero screenshot here — the catalogue panel + map.</small>
+        </div>
+      </figure>
+    </section>
+
+    <!-- WHAT IT IS ------------------------------------------------------- -->
+    <section class="what">
+      <h2>What it does</h2>
+      <p>
+        Search Planetary Computer, Earth Search, and Copernicus Data Space
+        directly from QGIS. Draw an AOI on an interactive map, preview
+        scene coverage with colour-coded footprints, and pick the imagery
+        that actually overlaps where you care about. Download as
+        Cloud-Optimised GeoTIFF — optionally clipped to your AOI.
+      </p>
+      <p>
+        Train a classifier (Random Forest, LightGBM, XGBoost) on training
+        polygons, predict to a labelled raster, get a one-click accuracy
+        report PDF. Run BFAST / LandTrendr / CuSum change detection on a
+        Sentinel-2 time-series cube without writing a line of code. SAM
+        prompts and Prithvi/Clay foundation-model fine-tunes are wired in
+        for when you outgrow the classical stack.
+      </p>
+    </section>
+
+    <!-- FEATURES --------------------------------------------------------- -->
+    <section id="features" class="features">
+      <h2>Features</h2>
+      <div class="feature-grid">
+        <article class="feature">
+          <h3>STAC catalogue search</h3>
+          <p>
+            Planetary Computer, Earth Search, CDSE. Draw or type an AOI,
+            filter by date and cloud cover, preview footprints on an
+            embedded OpenStreetMap (or satellite) basemap.
+          </p>
+        </article>
+        <article class="feature">
+          <h3>Batch COG download</h3>
+          <p>
+            Multi-select scenes; download as Cloud-Optimised GeoTIFFs to
+            a folder of your choice. Optional AOI-mask clip. Live progress
+            bar + log tail for every job.
+          </p>
+        </article>
+        <article class="feature">
+          <h3>Classical classification</h3>
+          <p>
+            Random Forest, LightGBM, XGBoost — train on training polygons,
+            predict to a COG, get cross-validated accuracy out of the box.
+            Reasonable defaults; minimal knobs.
+          </p>
+        </article>
+        <article class="feature">
+          <h3>Accuracy reporting</h3>
+          <p>
+            Confusion matrix, per-class precision/recall/F1, overall
+            accuracy and Cohen's kappa, exported as a PDF report you can
+            hand to a client.
+          </p>
+        </article>
+        <article class="feature">
+          <h3>Time-series change detection</h3>
+          <p>
+            Per-pixel CuSum, BFAST, and LandTrendr on Sentinel-2 cubes.
+            Break-index and magnitude rasters drop straight into the layer
+            panel; optional MP4 of the index time-series.
+          </p>
+        </article>
+        <article class="feature">
+          <h3>Foundation models</h3>
+          <p>
+            Prithvi-EO-2.0 and Clay fine-tunes via TerraTorch, with ONNX
+            export for inference. SAM-prompted segmentation via
+            segment-geospatial. GPU-aware; falls back to CPU sensibly.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- SCREENSHOTS ------------------------------------------------------ -->
+    <section id="screenshots" class="screenshots">
+      <h2>Screenshots</h2>
+      <p class="muted">
+        Drop PNGs into <code>web/screenshots/</code> matching the filenames
+        below — the placeholders disappear automatically.
+      </p>
+      <div class="shot-grid">
+        <figure class="shot">
+          <img
+            src="screenshots/02-catalog.png"
+            alt="Catalogue search panel with embedded map, AOI rectangle, and several ticked footprints overlapping"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+          />
+          <div class="img-placeholder">
+            <span>screenshots/02-catalog.png</span>
+            <small>Catalogue search with map + footprints</small>
+          </div>
+          <figcaption>
+            <strong>Catalogue search.</strong> Embedded Leaflet map, AOI
+            picker, scene-coverage overlay.
+          </figcaption>
+        </figure>
+        <figure class="shot">
+          <img
+            src="screenshots/03-classify.png"
+            alt="Classify panel showing classifier setup and training options"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+          />
+          <div class="img-placeholder">
+            <span>screenshots/03-classify.png</span>
+            <small>Classifier setup</small>
+          </div>
+          <figcaption>
+            <strong>Classify scene.</strong> Pick a raster + training
+            polygons, choose RF / LightGBM / XGBoost, run.
+          </figcaption>
+        </figure>
+        <figure class="shot">
+          <img
+            src="screenshots/04-accuracy.png"
+            alt="Accuracy report PDF preview"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+          />
+          <div class="img-placeholder">
+            <span>screenshots/04-accuracy.png</span>
+            <small>Accuracy report PDF</small>
+          </div>
+          <figcaption>
+            <strong>Accuracy report.</strong> Confusion matrix, OA, kappa,
+            per-class metrics in a single PDF.
+          </figcaption>
+        </figure>
+        <figure class="shot">
+          <img
+            src="screenshots/05-change.png"
+            alt="Change detection results layer in QGIS"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+          />
+          <div class="img-placeholder">
+            <span>screenshots/05-change.png</span>
+            <small>Change-detection break index raster</small>
+          </div>
+          <figcaption>
+            <strong>Time-series change.</strong> Break-index raster ready
+            to symbolise, no command-line steps.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- WHY NOT SCP ------------------------------------------------------ -->
+    <section class="why">
+      <h2>Why not SCP?</h2>
+      <p>
+        The Semi-Automatic Classification Plugin is the de-facto QGIS
+        plugin for supervised classification — a million-plus downloads
+        and a decade of feature accretion. But its UX hasn't been
+        redesigned since 2016, the install path is fragile, and the
+        classifier stack is sklearn-era. Terranova picks up the same
+        problem with a different starting point:
+      </p>
+      <ul class="why-list">
+        <li>
+          <strong>STAC + COG everywhere.</strong> Lazy xarray cubes; no
+          scene-by-scene download dance.
+        </li>
+        <li>
+          <strong>Modern UI surface.</strong> A React-in-QWebEngine dock
+          with an embedded interactive map; native Qt dialogs kept as a
+          compatibility fallback.
+        </li>
+        <li>
+          <strong>Foundation models built in.</strong> Prithvi, Clay, SAM
+          via TerraTorch + segment-geospatial — not a separate plugin.
+        </li>
+        <li>
+          <strong>Pure-Python domain layer.</strong> Everything testable
+          without QGIS; scripting from Jupyter is a first-class path.
+        </li>
+      </ul>
+    </section>
+
+    <!-- AUTHORS ---------------------------------------------------------- -->
+    <section id="authors" class="authors">
+      <h2>Authors</h2>
+      <div class="author-grid">
+        <article class="author">
+          <h3>Cole Battell</h3>
+          <p>
+            Lead author. Designed and built the catalogue, classification,
+            and change-detection workflows; owns the dual-UI architecture
+            (native Qt + React-in-QWebEngine).
+          </p>
+        </article>
+        <article class="author">
+          <h3>Arné de Klerk</h3>
+          <p>
+            Co-author. KnetMiner / Rothamsted Research. Architecture,
+            domain-layer Python, and packaging.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- INSTALL ---------------------------------------------------------- -->
+    <section id="install" class="install">
+      <h2>Install</h2>
+      <p>
+        Terranova isn't published to <code>plugins.qgis.org</code> yet.
+        Until then, install from source:
+      </p>
+      <pre><code>git clone https://github.com/Arnedeklerk/terranova
+cd terranova
+
+# Build the embedded web panel (one-time)
+cd src/terranova/ui_web
+npm install
+npm run build
+cd ../../..
+
+# Junction the source into your QGIS plugins folder
+.\scripts\link_plugin.ps1            # Windows PowerShell
+# or:  make deploy                    # macOS / Linux
+
+# Launch QGIS — Terranova appears under Plugins → Installed.</code></pre>
+      <p class="muted">
+        Full install + first-run guide:
+        <a
+          href="https://github.com/Arnedeklerk/terranova/blob/main/docs/installation.md"
+          target="_blank"
+          rel="noopener"
+          >docs/installation.md</a
+        >.
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <strong>Terranova</strong> · GPL-3.0-or-later · ©
+      <span id="year"></span> Cole Battell &amp; Arné de Klerk
+    </div>
+    <div class="links">
+      <a
+        href="https://github.com/Arnedeklerk/terranova"
+        target="_blank"
+        rel="noopener"
+        >Repository</a
+      >
+      <a
+        href="https://github.com/Arnedeklerk/terranova/issues"
+        target="_blank"
+        rel="noopener"
+        >Issues</a
+      >
+      <a
+        href="https://github.com/Arnedeklerk/terranova/blob/main/LICENSE"
+        target="_blank"
+        rel="noopener"
+        >License</a
+      >
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
