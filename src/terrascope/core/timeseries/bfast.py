@@ -84,11 +84,34 @@ def detect_breaks_cusum(
     # Avoid division by zero on uniform pixels.
     std = np.where(std == 0, np.nan, std)
 
+    # Standard CuSum-Lite monitoring: residuals taken across the full series,
+    # but the cumulative sum *resets* at ``monitor_start_index`` so noise from
+    # the history doesn't leak into the monitoring period as a false break.
+    # Threshold scales as sqrt(N) * sigma where N is steps since reset — the
+    # cumsum of mean-zero noise grows that fast under H0.
     residuals = values - mean[None, :, :]
-    cusum = np.nancumsum(residuals, axis=0)
+    n_time = values.shape[0]
+    monitor_start = max(0, min(monitor_start_index, n_time))
+    # Zero out the history portion of residuals so the cumsum starts at 0
+    # at monitor_start.  We could also slice + cumsum just the monitoring
+    # tail and pad with zeros — same effect, this is simpler.
+    monitored = residuals.copy()
+    if monitor_start > 0:
+        monitored[:monitor_start] = 0.0
+    cusum = np.nancumsum(monitored, axis=0)
     abs_cusum = np.abs(cusum)
 
-    crossed = abs_cusum > (threshold * std[None, :, :])
+    # CuSum of N mean-zero observations with std σ has expected std σ·√N.
+    # Scale the threshold accordingly so it's stable as the monitoring window
+    # gets longer.
+    steps_since_reset = np.arange(n_time, dtype=np.float32) - monitor_start + 1
+    steps_since_reset = np.maximum(steps_since_reset, 1.0)  # avoid sqrt(<=0)
+    scale = np.sqrt(steps_since_reset)[:, None, None]
+    crossed = abs_cusum > (threshold * scale * std[None, :, :])
+    # Only count crossings in the monitoring period itself.
+    if monitor_start > 0:
+        crossed[:monitor_start] = False
+
     # First index where any cross occurs (along the time axis).
     break_idx = np.where(
         crossed.any(axis=0),

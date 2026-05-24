@@ -73,6 +73,18 @@ class ClassifierSetupDialog(QDialog):
     # ------------------------------------------------------------------ #
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
+
+        intro = QLabel(
+            "Trains a classifier on every pixel covered by your training "
+            "polygons, then applies it to the input raster.\n"
+            "Tip: open the Log Messages panel (View → Panels → Log "
+            "Messages → TerraScope) — diagnostics about the training set "
+            "and output land there as the task runs."
+        )
+        intro.setWordWrap(True)
+        intro.setStyleSheet("color:#8A93A0; padding-bottom:6px;")
+        root.addWidget(intro)
+
         form = QFormLayout()
 
         self.raster_combo = QComboBox()
@@ -104,11 +116,27 @@ class ClassifierSetupDialog(QDialog):
         self.n_estimators.setRange(10, 2000)
         self.n_estimators.setValue(300)
         self.n_estimators.setSingleStep(50)
-        form.addRow("n_estimators (where applicable)", self.n_estimators)
+        self.n_estimators.setToolTip(
+            "Number of decision trees in the ensemble (or boosting rounds for "
+            "LightGBM / XGBoost).  This is NOT the number of training samples — "
+            "training samples are read automatically from every pixel covered by "
+            "your training polygons.\n\n"
+            "Rule of thumb: 100–500 trees is the sweet spot for Random Forest. "
+            "Above 500 you get diminishing returns; below 50 the model under-"
+            "averages and noise leaks through.  No effect for KNN / Logistic "
+            "Regression / MLP."
+        )
+        form.addRow("Trees / boosting rounds", self.n_estimators)
 
         self.cv_folds = QSpinBox()
         self.cv_folds.setRange(2, 10)
         self.cv_folds.setValue(5)
+        self.cv_folds.setToolTip(
+            "K-fold stratified cross-validation used during accuracy assessment "
+            "(not directly used by this dialog yet — the Accuracy Report dialog "
+            "is where folds come into play).  Each class must have at least this "
+            "many training pixels."
+        )
         form.addRow("Cross-validation folds", self.cv_folds)
 
         out_row = QHBoxLayout()
@@ -296,12 +324,46 @@ class _FullClassifyTask(QgsTask):
             )
             if self.isCanceled():
                 return False
-            if X.shape[0] < 5:
+
+            import numpy as np
+
+            n_samples = int(X.shape[0])
+            unique, counts = np.unique(y, return_counts=True)
+            class_breakdown = ", ".join(
+                f"class {int(c)}={int(n)}" for c, n in zip(unique, counts, strict=False)
+            )
+            QgsMessageLog.logMessage(
+                f"Training inputs: {n_samples} pixels, {X.shape[1]} bands, "
+                f"{len(unique)} classes ({class_breakdown})",
+                "TerraScope",
+                Qgis.MessageLevel.Info,
+            )
+
+            if n_samples < 5:
                 raise RuntimeError(
-                    f"Only {X.shape[0]} valid training pixels — need at least 5."
+                    f"Only {n_samples} valid training pixels found.  Check that\n"
+                    "  - the training polygons actually overlap the raster (matching CRS),\n"
+                    "  - the raster has valid (non-NaN) values where the polygons cover,\n"
+                    "  - the class field on the vector layer is the one you picked."
+                )
+            if len(unique) < 2:
+                raise RuntimeError(
+                    f"All {n_samples} training pixels have the same class id "
+                    f"({int(unique[0])}).  A classifier needs at least two classes.\n"
+                    "  Check: is your class field varying across polygons?  Open the\n"
+                    "  attribute table on the vector layer and confirm the values."
+                )
+            min_count = int(counts.min())
+            if min_count < self.cfg.cv_folds:
+                QgsMessageLog.logMessage(
+                    f"Warning: smallest class has only {min_count} pixels which is below "
+                    f"cv_folds={self.cfg.cv_folds}.  Cross-validation may fail; consider "
+                    f"reducing CV folds or adding more polygons for that class.",
+                    "TerraScope",
+                    Qgis.MessageLevel.Warning,
                 )
 
-            self._emit(10, f"Training {self.cfg.classifier} on {X.shape[0]} pixels…")
+            self._emit(10, f"Training {self.cfg.classifier} on {n_samples} pixels…")
             cfg = ClassifierConfig(
                 kind=ClassifierKind(self.cfg.classifier),
                 hyperparameters={"n_estimators": self.cfg.n_estimators}
@@ -323,6 +385,43 @@ class _FullClassifyTask(QgsTask):
                 progress_cb=lambda p: self._emit(30 + p * 70, ""),
                 cancel_cb=self.isCanceled,
             )
+
+            # Sanity-check the output — read it back and report what class
+            # codes ended up in the raster.  If all pixels are the same class
+            # something is wrong; the dialog will surface this to the user.
+            try:
+                import rasterio
+
+                with rasterio.open(self.result_path) as src:
+                    out_arr = src.read(1)
+                vals, n = np.unique(out_arr, return_counts=True)
+                summary = ", ".join(
+                    f"class {int(v)}={int(c)}" for v, c in zip(vals, n, strict=False)
+                )
+                QgsMessageLog.logMessage(
+                    f"Output pixel breakdown: {summary}",
+                    "TerraScope",
+                    Qgis.MessageLevel.Info,
+                )
+                # Excluding nodata (0), how many distinct classes did we end up with?
+                non_nodata = vals[vals != 0]
+                if non_nodata.size <= 1:
+                    QgsMessageLog.logMessage(
+                        "Warning: classified raster has at most one non-nodata class — "
+                        "the model collapsed to a single prediction.  Common causes: "
+                        "training data dominated by one class, all polygons in similar "
+                        "spectral neighbourhoods, or wrong band selection on the input "
+                        "raster.  Check the Training inputs log line above.",
+                        "TerraScope",
+                        Qgis.MessageLevel.Warning,
+                    )
+            except Exception as exc:  # noqa: BLE001 — diagnostic only
+                QgsMessageLog.logMessage(
+                    f"Could not summarise output raster ({exc!r})",
+                    "TerraScope",
+                    Qgis.MessageLevel.Warning,
+                )
+
             return True
         except Exception as exc:
             self.error_text = f"{type(exc).__name__}: {exc}"
