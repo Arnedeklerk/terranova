@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -44,13 +44,12 @@ interface Props {
   footprints: FootprintSpec[];
   /** Called when the user finishes drawing a new rectangle. */
   onAoiChange(b: Bbox): void;
-  /** Optional fixed height — defaults to 280px. */
-  height?: number;
 }
 
-export function AoiMap({ aoi, footprints, onAoiChange, height = 280 }: Props) {
+export function AoiMap({ aoi, footprints, onAoiChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const [expanded, setExpanded] = useState(false);
   // Layers we control — held in refs so we can replace cleanly on prop
   // changes without React tree churn.
   const aoiLayerRef = useRef<L.Rectangle | null>(null);
@@ -210,6 +209,27 @@ export function AoiMap({ aoi, footprints, onAoiChange, height = 280 }: Props) {
     }
   }, [footprints]);
 
+  // Leaflet caches the container size at every layout-affecting event.
+  // Switching expanded mode resizes the container in one paint; tell
+  // Leaflet to re-measure on the next frame so tiles + hit testing line
+  // up with the new bounds.
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const t = setTimeout(() => mapRef.current?.invalidateSize(), 50);
+    return () => clearTimeout(t);
+  }, [expanded]);
+
+  // Escape collapses the expanded view.  Only attach when expanded so
+  // a stray Escape press in normal mode doesn't get swallowed.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+
   const startDrawing = () => {
     drawingRef.current.active = true;
     if (containerRef.current) {
@@ -229,28 +249,67 @@ export function AoiMap({ aoi, footprints, onAoiChange, height = 280 }: Props) {
   }, []);
 
   return (
-    <div className="mt-4 bg-bg-1 border border-bg-2 rounded-md overflow-hidden">
-      <div className="px-3 py-2 flex items-center justify-between border-b border-bg-2 text-xs">
-        <span className="text-fg-muted">
-          AOI map — draw a rectangle to set the search area.  Orange
-          dashed = AOI, cyan = scene footprint.
-        </span>
-        <button
-          onClick={startDrawing}
-          className="px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded"
-          title="Click then drag on the map to draw a rectangle"
-        >
-          Draw AOI
-        </button>
-      </div>
+    <>
+      {/* When expanded, dim everything behind the modal and let
+          click-outside collapse it.  z-40 sits under the map wrapper's
+          z-50 so the map stays clickable. */}
+      {expanded && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40"
+          onClick={() => setExpanded(false)}
+          aria-hidden="true"
+        />
+      )}
       <div
-        ref={containerRef}
-        style={{ height }}
-        className="w-full"
-        // Intentionally NO React onWheel handler — React adds passive
-        // listeners that interfere with Leaflet's native non-passive
-        // wheel handler.  Let Leaflet own the event.
-      />
-    </div>
+        className={
+          "bg-bg-1 border border-bg-2 rounded-md overflow-hidden flex flex-col " +
+          (expanded
+            ? "fixed inset-3 z-50 shadow-2xl"
+            : "mt-4")
+        }
+      >
+        <div className="px-3 py-2 flex items-center justify-between border-b border-bg-2 text-xs">
+          <span className="text-fg-muted">
+            AOI map — draw a rectangle to set the search area.  Orange
+            dashed = AOI, coloured fills = ticked scene footprints.
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={startDrawing}
+              className="px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded"
+              title="Click then drag on the map to draw a rectangle"
+            >
+              Draw AOI
+            </button>
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded"
+              title={
+                expanded
+                  ? "Collapse map back into the panel (Esc)"
+                  : "Expand map to fill the dock"
+              }
+            >
+              {expanded ? "Collapse ↙" : "Expand ↗"}
+            </button>
+          </div>
+        </div>
+        {/* Map container.  In normal mode we use aspect-ratio so the map
+            scales taller as the user drags the dock wider — no fixed
+            pixel height.  In expanded mode flex-1 takes the remaining
+            modal area.  Intentionally NO React onWheel handler — React
+            adds passive listeners that fight Leaflet's native wheel
+            handler. */}
+        <div
+          ref={containerRef}
+          className="w-full"
+          style={
+            expanded
+              ? { flex: "1 1 auto", minHeight: 0 }
+              : { aspectRatio: "3 / 2", minHeight: 340 }
+          }
+        />
+      </div>
+    </>
   );
 }
