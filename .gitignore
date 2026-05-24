@@ -48,6 +48,7 @@ CLAUDE.md
 *.zarr/
 samples/_local/
 docs/site/
+site/
 
 # Telemetry installation id (per-machine)
 installation_id
