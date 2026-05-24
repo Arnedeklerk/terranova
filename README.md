@@ -9,7 +9,7 @@ A modern QGIS plugin (3.40+ / 4.x) for semi-automatic classification, foundation
 ## Authors
 
 - Cole Battell
-- Arné de Klerk — Rothamsted Research
+- Arné de Klerk — KnetMiner/ Rothamsted Research
 
 ## Why
 
