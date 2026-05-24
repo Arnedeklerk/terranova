@@ -130,9 +130,21 @@ def _do_download(task: Any) -> bool:
         if task.isCanceled():
             return False
 
-        items = list(client.search(ids=[task.item_id], max_items=1).item_collection())
+        # Planetary Computer's STAC API rejects id-only searches with
+        # "collection is required" — pass collections= explicitly.  Earth
+        # Search and CDSE both accept it too, so it's safe everywhere.
+        items = list(
+            client.search(
+                ids=[task.item_id],
+                collections=[task.collection],
+                max_items=1,
+            ).item_collection()
+        )
         if not items:
-            raise RuntimeError(f"could not refetch item {task.item_id!r}")
+            raise RuntimeError(
+                f"could not refetch item {task.item_id!r} from collection "
+                f"{task.collection!r} on {task.endpoint.value}"
+            )
         _emit(task, 20, f"Item resolved.  Bands: {', '.join(task.bands)}")
         if task.isCanceled():
             return False
