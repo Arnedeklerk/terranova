@@ -20,6 +20,32 @@ modifying this repo. Humans should also read it before contributing.
    tone.
 6. **Colour ramps default to `cmc.batlow` / `cmc.vik`.**  Never default
    to jet/rainbow.  See `src/terrascope/ui/styles/tokens.yaml`.
+7. **Every workflow lives in both UI surfaces.**  The native Qt menu
+   dialogs (`src/terrascope/ui/dialogs/`) and the React dock panels
+   (`src/terrascope/ui_web/src/panels/`) must offer the same set of
+   workflows.  The dock is the modern surface and gets the design
+   effort; the Qt dialogs are the compatibility fallback for QGIS
+   Standalone Windows users without QtWebEngine.  When adding a new
+   workflow, do both.  When fixing a UX bug, fix it in whichever surface
+   the user encountered it AND its counterpart.
+
+## Long-running task pattern
+
+For any workflow that takes more than ~1 s:
+
+1. Controller handler validates the payload and starts a `QgsTask`
+   (see `controllers/classify.py` as the reference).
+2. Handler returns ``{"job_id": "..."}`` *immediately*.
+3. The task emits progress via :func:`terrascope.bridge.push_event`:
+   - ``{"type": "task.progress", "job_id": ..., "percent": 0-100, "status": "..."}``
+   - ``{"type": "task.complete", "job_id": ..., "result": {...}}``
+   - ``{"type": "task.failed",   "job_id": ..., "error": "..."}``
+4. The React panel mounts a `<JobProgress jobId={...} />` and subscribes
+   via `onEvent` filtered by `job_id`.
+
+Custom event types (e.g. `task.cdse.challenge`, `sam.point.added`) are
+allowed when a workflow needs to surface state that doesn't fit the
+generic progress shape.
 
 ## Project layout
 

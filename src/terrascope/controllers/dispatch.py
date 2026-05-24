@@ -56,6 +56,7 @@ class Controllers:
         # Workflow runners — start a QgsTask and return {job_id}, then stream
         # progress via bridge.push_event.
         from . import cdse as _cdse
+        from . import foundation as _foundation
         from . import sam as _sam
         from . import timeseries as _timeseries
 
@@ -68,6 +69,7 @@ class Controllers:
         self._handlers["sam.run"] = _sam.run
         self._handlers["sam.pick_points.start"] = _sam.start_pick_points
         self._handlers["sam.pick_points.stop"] = _sam.stop_pick_points
+        self._handlers["foundation.run"] = _foundation.run
 
     def dispatch(self, action: str, payload: dict[str, Any]) -> CommandResult:
         handler = self._handlers.get(action)

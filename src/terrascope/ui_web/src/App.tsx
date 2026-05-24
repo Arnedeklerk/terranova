@@ -6,6 +6,7 @@ import { Accuracy } from "./panels/Accuracy";
 import { TimeSeries } from "./panels/TimeSeries";
 import { Cdse } from "./panels/Cdse";
 import { Sam } from "./panels/Sam";
+import { Foundation } from "./panels/Foundation";
 import { CommandPalette } from "./panels/CommandPalette";
 import { TelemetryConsent } from "./panels/TelemetryConsent";
 import { useHotkey } from "./hooks/useHotkey";
@@ -72,39 +73,12 @@ export function App() {
         {view === "accuracy" && <Accuracy />}
         {view === "timeseries" && <TimeSeries />}
         {view === "sam" && <Sam />}
-        {view === "foundation" && (
-          <PointerToMenu
-            name="Fine-tune foundation model"
-            menuPath="Raster → TerraScope → Fine-tune foundation model…"
-            description="Fine-tune Prithvi / Clay / TerraMind on user-supplied scene + mask pairs, export to ONNX. Heavy — GPU recommended. The dialog opens from the main QGIS menu."
-          />
-        )}
+        {view === "foundation" && <Foundation />}
         {view === "cdse" && <Cdse />}
       </main>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       <TelemetryConsent />
-    </div>
-  );
-}
-
-interface PointerProps {
-  name: string;
-  menuPath: string;
-  description: string;
-}
-
-function PointerToMenu({ name, menuPath, description }: PointerProps) {
-  return (
-    <div className="max-w-xl">
-      <h2 className="text-lg font-semibold mb-2">{name}</h2>
-      <p className="text-fg-muted text-sm mb-4 leading-relaxed">{description}</p>
-      <div className="bg-bg-1 border border-bg-2 rounded-md p-4 text-sm">
-        <div className="text-fg-muted mb-1 text-xs uppercase tracking-wide">
-          Where to find it
-        </div>
-        <code className="text-fg font-mono">{menuPath}</code>
-      </div>
     </div>
   );
 }
