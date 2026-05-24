@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { onEvent } from "../bridge";
+import { LogTail } from "./LogTail";
 
 /**
  * Subscribes to bridge events for a given job_id and renders a progress bar
@@ -102,11 +103,12 @@ export function JobProgress({ jobId, onComplete, onFailed }: JobProgressProps) {
         <p className="text-warn text-xs mt-1">
           No progress event in {STALL_WARN_MS / 1000} s. The task may be hung,
           the underlying dependency may be missing, or the bridge may have
-          stopped forwarding events. Check the QGIS Log Messages panel
-          (View → Panels → Log Messages → TerraScope tab) for the real
-          last-known status.
+          stopped forwarding events. Check the log below (or the QGIS Log
+          Messages panel — View → Panels → Log Messages → TerraScope tab)
+          for the real last-known status.
         </p>
       )}
+      <LogTail startOpen={stalled || done === "fail"} />
     </div>
   );
 }
