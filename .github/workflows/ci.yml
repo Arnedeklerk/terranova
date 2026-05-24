@@ -68,7 +68,7 @@ jobs:
       - name: Build
         working-directory: src/terrascope/ui_web
         run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ui-dist
           path: src/terrascope/ui_web/dist
