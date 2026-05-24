@@ -86,6 +86,30 @@ export function Classify() {
     if (r.ok && r.result?.path) setOutputPath(r.result.path);
   };
 
+  /**
+   * Browse for a training vector file on disk without having to load it
+   * as a QGIS layer first.  The picked path is added to the dropdown
+   * with a "(file)" prefix so the user can see it's a one-shot pick,
+   * and selected automatically.  Fields refresh via the existing
+   * useEffect on vectorSrc.
+   */
+  const pickVectorFile = async () => {
+    const r = await invoke<{ path: string }>("dialog.open_file", {
+      title: "Pick a training vector file",
+      filter:
+        "Vector files (*.gpkg *.shp *.geojson *.json *.kml *.gpx);;All files (*.*)",
+    });
+    if (!r.ok || !r.result?.path) return;
+    const path = r.result.path;
+    const name = path.split(/[/\\]/).pop() || path;
+    setVectors((prev) =>
+      prev.some((v) => v.source === path)
+        ? prev
+        : [...prev, { name: `(file) ${name}`, source: path }],
+    );
+    setVectorSrc(path);
+  };
+
   const run = async () => {
     if (!rasterSrc || !vectorSrc || !classField || !outputPath) {
       setErr("Pick raster, vector, class field, and output path.");
@@ -144,19 +168,31 @@ export function Classify() {
           </select>
         </Field>
 
-        <Field label="Training vector (polygons / points)">
-          <select
-            value={vectorSrc}
-            onChange={(e) => setVectorSrc(e.target.value)}
-            className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
-          >
-            <option value="">— pick a vector layer —</option>
-            {vectors.map((l) => (
-              <option key={l.source} value={l.source}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+        <Field
+          label="Training vector (polygons / points)"
+          hint="Pick a loaded layer, or Browse to a file on disk (.gpkg, .shp, .geojson…)"
+        >
+          <div className="flex gap-2">
+            <select
+              value={vectorSrc}
+              onChange={(e) => setVectorSrc(e.target.value)}
+              className="flex-1 bg-bg-1 border border-bg-2 rounded px-2 py-1"
+            >
+              <option value="">— pick a vector layer —</option>
+              {vectors.map((l) => (
+                <option key={l.source} value={l.source}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={pickVectorFile}
+              className="px-3 py-1 bg-bg-1 hover:bg-bg-2 border border-bg-2 rounded text-sm whitespace-nowrap"
+              title="Pick a vector file from disk; no need to load it as a layer first"
+            >
+              Browse…
+            </button>
+          </div>
         </Field>
 
         <Field label="Class field on the vector layer">

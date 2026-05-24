@@ -30,13 +30,29 @@ def list_vectors(_payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def fields(payload: dict[str, Any]) -> dict[str, Any]:
-    """Return the field names of a vector layer identified by ``path``."""
+    """Return the field names of a vector identified by ``path``.
+
+    First checks loaded QGIS layers; if no match (the user picked a file
+    via the Browse button rather than choosing a loaded layer), opens
+    the path as a transient :class:`QgsVectorLayer` just long enough to
+    read the schema.  The transient layer is GC'd as soon as we return,
+    so it doesn't pollute the project tree.
+    """
     from qgis.core import QgsProject, QgsVectorLayer
 
     path = payload.get("path", "")
     if not path:
         return {"fields": []}
+
+    # 1) Match a loaded layer by source string.
     for layer in QgsProject.instance().mapLayers().values():
         if isinstance(layer, QgsVectorLayer) and layer.source() == path:
             return {"fields": [f.name() for f in layer.fields()]}
-    return {"fields": []}
+
+    # 2) Fall back to opening the file directly.  Name + provider are
+    #    deliberately minimal — the layer never gets added to the
+    #    project.  Returns empty if the file isn't a readable vector.
+    layer = QgsVectorLayer(path, "terranova_field_probe", "ogr")
+    if not layer.isValid():
+        return {"fields": []}
+    return {"fields": [f.name() for f in layer.fields()]}
