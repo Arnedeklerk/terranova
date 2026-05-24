@@ -59,9 +59,19 @@ export function AoiMap({ aoi, footprint, onAoiChange, height = 280 }: Props) {
       center: [20, 0],
       zoom: 2,
       worldCopyJump: true,
-      // The container is small; keep zoom controls but move them so they
-      // don't fight with the "Draw" toolbar in the corner.
       zoomControl: true,
+      // Explicit even though it's the default — QtWebEngine embeds can
+      // be subtle about wheel-event delivery; making sure Leaflet has
+      // its scroll-zoom handler wired regardless.
+      scrollWheelZoom: true,
+      wheelDebounceTime: 30,
+    });
+    // If the dock was mounted while collapsed (size 0x0) then later
+    // expanded, Leaflet's initial measurement is wrong — schedule a
+    // resize on the next frame so tiles + interactions line up with the
+    // visible container.
+    requestAnimationFrame(() => {
+      map.invalidateSize();
     });
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
@@ -204,8 +214,9 @@ export function AoiMap({ aoi, footprint, onAoiChange, height = 280 }: Props) {
         ref={containerRef}
         style={{ height }}
         className="w-full"
-        // Block ctrl-scroll from zooming the QGIS dock instead of the map.
-        onWheelCapture={(e) => e.stopPropagation()}
+        // Intentionally NO React onWheel handler — React adds passive
+        // listeners that interfere with Leaflet's native non-passive
+        // wheel handler.  Let Leaflet own the event.
       />
     </div>
   );
