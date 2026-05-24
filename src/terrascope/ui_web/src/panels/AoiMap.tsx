@@ -84,23 +84,40 @@ export function AoiMap({
       zoom: 2,
       worldCopyJump: true,
       zoomControl: true,
-      // Explicit even though it's the default — QtWebEngine embeds can
-      // be subtle about wheel-event delivery; making sure Leaflet has
-      // its scroll-zoom handler wired regardless.
       scrollWheelZoom: true,
       wheelDebounceTime: 30,
+      // Canvas renderer makes pan/drag MUCH smoother when several
+      // semi-transparent footprints are visible — SVG alpha-blending
+      // is the bottleneck with 4+ polygons on screen.
+      preferCanvas: true,
+      // No tile fade-in: shaves a frame off every pan + every tile
+      // request and just makes the map feel snappier.
+      fadeAnimation: false,
+      // Don't request a new tile set on every zoom delta; wait until
+      // the zoom-out finishes.  Smoother feeling zoom at the cost of
+      // brief blurring at intermediate scales.
+      zoomAnimation: true,
     });
-    // If the dock was mounted while collapsed (size 0x0) then later
-    // expanded, Leaflet's initial measurement is wrong — schedule a
-    // resize on the next frame so tiles + interactions line up with the
-    // visible container.
     requestAnimationFrame(() => {
       map.invalidateSize();
     });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-      maxZoom: 19,
-    }).addTo(map);
+    // CartoDB Voyager — CDN-backed, allows subdomain sharding (parallel
+    // tile requests over HTTP/1 keepalive pools), substantially faster
+    // than openstreetmap.org's own server for embedded use.  Free with
+    // attribution, no API key required.  `{r}` substitutes "@2x" on
+    // high-DPI displays for crisp text.
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
+        // Preload more tiles around the viewport so dragging stays
+        // ahead of the edge — fewer "grey square" moments.  Default 2.
+        keepBuffer: 4,
+      },
+    ).addTo(map);
     mapRef.current = map;
 
     // Drawing handlers — registered once, gated by drawingRef.current.active
