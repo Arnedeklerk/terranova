@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { invoke, onEvent } from "../bridge";
+import { useMemo, useState } from "react";
+import { invoke } from "../bridge";
 import { formatDMS, parseDMS } from "./dms";
 import { JobProgress } from "./JobProgress";
+import { AoiMap, type Bbox } from "./AoiMap";
 
 interface CatalogItem {
   id: string;
@@ -17,10 +18,15 @@ interface CatalogItem {
 /**
  * STAC catalogue search panel.
  *
- * AOI is given as two corners — NW (top-left) and SE (bottom-right) — with
- * a switch between Decimal Degrees and DMS for typing.  "Use canvas extent"
- * dispatches `canvas.bbox` to Python; the Python controller reads the QGIS
- * map canvas, projects to WGS84, and returns the bbox.
+ * AOI is set in three interchangeable ways:
+ *  - Drag a rectangle on the embedded OpenStreetMap below the form
+ *    (Earth-Explorer-style, primary path).
+ *  - Type NW/SE corners directly (DD or DMS).
+ *  - "Use canvas extent" — read the QGIS map canvas.
+ *
+ * Results show a footprint polygon on the embedded map when a row is
+ * clicked, so the user can compare scene coverage to their AOI before
+ * downloading.
  */
 
 type Format = "dd" | "dms";
@@ -58,7 +64,6 @@ export function CatalogSearch() {
 
   const [downloadJobId, setDownloadJobId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const [picking, setPicking] = useState(false);
   // Per-item download status while a batch is running.
   const [batchProgress, setBatchProgress] = useState<{
     done: number;
@@ -73,77 +78,53 @@ export function CatalogSearch() {
   const [batchOutDir, setBatchOutDir] = useState<string | null>(null);
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
 
-  // Clean up the map preview + AOI overlay + any active AOI picker when
-  // the panel unmounts (user navigates away).
-  useEffect(() => {
-    return () => {
-      void invoke("catalog.clear_preview");
-      void invoke("catalog.clear_aoi");
-      void invoke("catalog.pick_aoi.stop");
-    };
-  }, []);
-
-  // Push the AOI rectangle to the QGIS canvas whenever the corner fields
-  // change — debounced so typing doesn't spam the bridge.  The overlay
-  // is styled (orange dashed) distinctly from the footprint preview
-  // (cyan solid) so the user can compare them at a glance.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      let bbox;
-      try {
-        bbox = currentBbox();
-      } catch {
-        return;
-      }
-      // Only push when we have four finite, non-inverted values — partial
-      // input would draw a degenerate rectangle the user didn't ask for.
-      if (
-        !Number.isFinite(bbox.west) ||
-        !Number.isFinite(bbox.south) ||
-        !Number.isFinite(bbox.east) ||
-        !Number.isFinite(bbox.north) ||
-        bbox.east <= bbox.west ||
-        bbox.north <= bbox.south
-      ) {
-        return;
-      }
-      void invoke("catalog.show_aoi", {
-        bbox: [bbox.west, bbox.south, bbox.east, bbox.north],
-      });
-    }, 350);
-    return () => clearTimeout(t);
-    // The four corner fields drive this; intentionally NOT format —
-    // switching DD↔DMS just reformats the same numbers, the box on the
-    // map shouldn't blink.
+  // Derived AOI for the embedded map.  Returns null while corner fields
+  // are partially populated so the map doesn't draw a degenerate rect.
+  const mapAoi: Bbox | null = useMemo(() => {
+    let b;
+    try {
+      b = currentBbox();
+    } catch {
+      return null;
+    }
+    if (
+      !Number.isFinite(b.west) ||
+      !Number.isFinite(b.south) ||
+      !Number.isFinite(b.east) ||
+      !Number.isFinite(b.north) ||
+      b.east <= b.west ||
+      b.north <= b.south
+    ) {
+      return null;
+    }
+    return b;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nw.lat, nw.lon, se.lat, se.lon, nwDms.lat, nwDms.lon, seDms.lat, seDms.lon]);
+  }, [nw.lat, nw.lon, se.lat, se.lon, nwDms.lat, nwDms.lon, seDms.lat, seDms.lon, format]);
 
-  // Listen for the "user finished drawing the AOI rectangle" event the
-  // canvas-side tool emits when they release the mouse.
-  useEffect(() => {
-    return onEvent((payload) => {
-      const p = payload as {
-        type?: string;
-        bbox?: [number, number, number, number];
-      };
-      if (p.type !== "catalog.aoi.picked" || !p.bbox) return;
-      const [west, south, east, north] = p.bbox;
-      if (format === "dd") {
-        setNw({ lat: String(north), lon: String(west) });
-        setSe({ lat: String(south), lon: String(east) });
-      } else {
-        setNwDms({
-          lat: formatDMS(north, true),
-          lon: formatDMS(west, false),
-        });
-        setSeDms({
-          lat: formatDMS(south, true),
-          lon: formatDMS(east, false),
-        });
-      }
-      setPicking(false);
-    });
-  }, [format]);
+  // Footprint currently previewed on the embedded map (single item, the
+  // last clicked row).
+  const previewFootprint = useMemo(() => {
+    if (!results || !previewId) return null;
+    const it = results.find((x) => x.id === previewId);
+    return it?.geometry ?? null;
+  }, [results, previewId]);
+
+  /** Map → fields.  Called when the user drags a rectangle on the map. */
+  const onMapAoiChange = (b: Bbox) => {
+    if (format === "dd") {
+      setNw({ lat: String(b.north), lon: String(b.west) });
+      setSe({ lat: String(b.south), lon: String(b.east) });
+    } else {
+      setNwDms({
+        lat: formatDMS(b.north, true),
+        lon: formatDMS(b.west, false),
+      });
+      setSeDms({
+        lat: formatDMS(b.south, true),
+        lon: formatDMS(b.east, false),
+      });
+    }
+  };
 
   const currentBbox = (): {
     west: number;
@@ -232,22 +213,6 @@ export function CatalogSearch() {
     }
   };
 
-  const pickOnMap = async () => {
-    setErr(null);
-    if (picking) {
-      // Toggle off — user clicked the active button.
-      await invoke("catalog.pick_aoi.stop");
-      setPicking(false);
-      return;
-    }
-    const r = await invoke("catalog.pick_aoi.start");
-    if (!r.ok) {
-      setErr(r.error ?? "Could not start the map picker.");
-      return;
-    }
-    setPicking(true);
-  };
-
   const useCanvasBbox = async () => {
     setErr(null);
     const res = await invoke<{ bbox: [number, number, number, number] }>(
@@ -310,29 +275,12 @@ export function CatalogSearch() {
             <button
               onClick={useCanvasBbox}
               className="ml-2 px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded"
+              title="Read the current QGIS canvas extent and project it to WGS84"
             >
               Use canvas extent
             </button>
-            <button
-              onClick={pickOnMap}
-              className={
-                "px-2.5 py-1 border border-bg-2 rounded " +
-                (picking
-                  ? "bg-accent text-white"
-                  : "bg-bg-2 hover:bg-bg-0")
-              }
-              title="Drag a rectangle on the QGIS canvas"
-            >
-              {picking ? "Draw on map…" : "Pick on map"}
-            </button>
           </div>
         </div>
-        {picking && (
-          <p className="text-xs text-fg-muted mb-2">
-            Click and drag on the map to outline your AOI; release to confirm.
-            Click "Pick on map" again to cancel.
-          </p>
-        )}
 
         <CornerRow
           name="Top-left (NW)"
@@ -349,6 +297,14 @@ export function CatalogSearch() {
           dms={seDms}
           onDd={setSe}
           onDms={setSeDms}
+        />
+
+        {/* Embedded map — primary AOI picker.  Always visible so the user
+            can verify what they're searching for without flipping windows.  */}
+        <AoiMap
+          aoi={mapAoi}
+          footprint={previewFootprint}
+          onAoiChange={onMapAoiChange}
         />
       </div>
 
@@ -538,18 +494,11 @@ export function CatalogSearch() {
     );
   }
 
-  async function previewItem(it: CatalogItem) {
+  function previewItem(it: CatalogItem) {
+    // Footprint preview is rendered locally by AoiMap (sync — fast,
+    // can't fail).  We just bump the previewId; the parent's useMemo
+    // pulls the geometry out of `results` and feeds it down.
     setPreviewId(it.id);
-    if (!it.geometry && !it.bbox) return;
-    const r = await invoke("catalog.preview_footprint", {
-      item_id: it.id,
-      geometry: it.geometry ?? null,
-      bbox: it.bbox ?? null,
-    });
-    if (!r.ok) {
-      // Non-fatal — log but don't block download flow.
-      console.warn("[catalog] preview_footprint failed:", r.error);
-    }
   }
 
   async function downloadBatch() {
