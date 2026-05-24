@@ -23,6 +23,26 @@ syntax differs I call it out.
    shell for every `python -m pip install` step below — *not* a regular
    PowerShell or cmd.
 
+### Known issue: QtWebEngine on QGIS Standalone Windows
+
+The QGIS 3.x **Standalone Windows installer** ships without QtWebEngine to
+keep the download small.  The plugin's dock will say
+"QtWebEngine is not available in this QGIS build" — that's expected.
+
+**This is fine — you don't need it.**  The dock's embedded web panel only
+hosts the welcome screen and a Catalog tab.  **Every real workflow is in
+the QGIS menu bar** (Raster → TerraScope → …), not in the dock.  All the
+test cases below use the menu, not the dock, so just ignore the dock
+warning.
+
+If you want the dock anyway, two options:
+
+- `python -m pip install PyQtWebEngine` in the OSGeo4W shell.  Sometimes
+  the wheel matches the bundled PyQt5; if it doesn't, you'll get a
+  different import error next launch — just `pip uninstall` it and move on.
+- Reinstall QGIS via the OSGeo4W network installer (instead of Standalone).
+  The OSGeo4W flavour bundles QtWebEngine.
+
 ---
 
 ## 1. Build the React panel (one-time)
