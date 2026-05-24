@@ -164,12 +164,21 @@ export function AoiMap({
     const onMouseDown = (e: L.LeafletMouseEvent) => {
       const d = drawingRef.current;
       if (!d.active) return;
+      // Only left-button starts a drag.  Right-button mousedown here
+      // is the user trying to cancel the in-progress draw; let the
+      // contextmenu handler deal with it.
+      if (e.originalEvent.button !== 0) return;
       d.start = e.latlng;
       d.rect = L.rectangle(L.latLngBounds(d.start, d.start), {
         color: "#FF9E2F",
         weight: 2,
         dashArray: "6 4",
         fill: false,
+        // CRITICAL: without this the rectangle layer captures pointer
+        // events itself, so right-click ON the rectangle never bubbles
+        // up to map.on("contextmenu") and we can't cancel.  Same reason
+        // we need it on the persistent AOI layer below.
+        interactive: false,
       }).addTo(map);
       map.dragging.disable();
     };
@@ -191,18 +200,26 @@ export function AoiMap({
       if (north - south < 1e-5 || east - west < 1e-5) return;
       onAoiChangeRef.current({ west, south, east, north });
     };
-    // Right-click during drag MUST cancel cleanly.  Leaflet fires
-    // `contextmenu` instead of `mouseup` for the right button, so
-    // without this the temporary rectangle leaks onto the map and
-    // never gets cleared — every subsequent right-click stacks
-    // another orphan polygon up.
+    // Right-click during drag MUST cancel cleanly.  Three independent
+    // paths in case any one of them is swallowed somewhere up the stack
+    // (QtWebEngine occasionally eats contextmenu events before Leaflet
+    // sees them; the temp rectangle's child elements might capture the
+    // event before bubbling; etc.).  Each handler is idempotent so
+    // running more than one of them per click is harmless.
     const onContextMenu = (e: L.LeafletMouseEvent) => {
-      const d = drawingRef.current;
-      if (!d.active && !d.rect) return;
       abortDraw();
-      // Suppress the OS context menu so right-clicking on the map
-      // can't accidentally pop up the page's right-click menu.
       e.originalEvent?.preventDefault?.();
+    };
+    // Window-level safety net: catches contextmenu events even if
+    // Leaflet's own dispatcher doesn't fire.  Scoped to events inside
+    // the map container so we don't preventDefault on right-clicks
+    // elsewhere in the dock (e.g. for native input field menus).
+    const onWindowContextMenu = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) return;
+      e.preventDefault();
+      if (drawingRef.current.active || drawingRef.current.rect) {
+        abortDraw();
+      }
     };
     // Esc also cancels — symmetrical with the Expand-modal Esc handler.
     const onEsc = (e: KeyboardEvent) => {
@@ -213,6 +230,7 @@ export function AoiMap({
     map.on("mousemove", onMouseMove);
     map.on("mouseup", onMouseUp);
     map.on("contextmenu", onContextMenu);
+    window.addEventListener("contextmenu", onWindowContextMenu, true);
     window.addEventListener("keydown", onEsc);
 
     return () => {
@@ -220,6 +238,7 @@ export function AoiMap({
       map.off("mousemove", onMouseMove);
       map.off("mouseup", onMouseUp);
       map.off("contextmenu", onContextMenu);
+      window.removeEventListener("contextmenu", onWindowContextMenu, true);
       window.removeEventListener("keydown", onEsc);
       map.remove();
       mapRef.current = null;
@@ -260,6 +279,10 @@ export function AoiMap({
       weight: 2,
       dashArray: "6 4",
       fill: false,
+      // Match the temp drag rectangle — don't let the AOI eat clicks
+      // that should reach the map (e.g. starting a new draw on top
+      // of the existing rectangle).
+      interactive: false,
     }).addTo(map);
     // Fit the bounds with a bit of padding, but only if the bounds are
     // outside the current view — don't yank the user's zoom for free.

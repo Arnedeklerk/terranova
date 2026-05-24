@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "../bridge";
 import { formatDMS, parseDMS } from "./dms";
 import { JobProgress } from "./JobProgress";
@@ -89,6 +89,16 @@ export function CatalogSearch() {
   // OFF by default — clipping behind the user's back was confusing.
   // When ON, the rio.clip_box step in catalog.py runs after odc.stac.load.
   const [maskToAoi, setMaskToAoi] = useState(false);
+  // Ref to the header "tick all" checkbox so we can drive its
+  // `indeterminate` visual state — React doesn't expose it as a prop.
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!headerCheckboxRef.current) return;
+    const total = results?.length ?? 0;
+    const sel = selectedIds.size;
+    headerCheckboxRef.current.checked = total > 0 && sel === total;
+    headerCheckboxRef.current.indeterminate = sel > 0 && sel < total;
+  }, [results, selectedIds]);
   // Per-item download status while a batch is running.
   const [batchProgress, setBatchProgress] = useState<{
     done: number;
@@ -409,50 +419,44 @@ export function CatalogSearch() {
                 </span>
               )}
             </span>
-            <div className="flex gap-2 items-center">
-              {/* Two distinct buttons rather than one toggling label —
-                  the toggle made it hard to tell at a glance what
-                  clicking would do.  Each button disables itself when
-                  its action would be a no-op. */}
-              <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
-                <button
-                  onClick={() =>
-                    setSelectedIds(new Set(results.map((it) => it.id)))
-                  }
-                  disabled={
-                    results.length === 0 ||
-                    selectedIds.size === results.length
-                  }
-                  className="px-2 py-1 hover:bg-bg-0 disabled:opacity-40 disabled:cursor-default border-r border-bg-2 text-xs"
-                >
-                  Select all
-                </button>
-                <button
-                  onClick={() => setSelectedIds(new Set())}
-                  disabled={selectedIds.size === 0}
-                  className="px-2 py-1 hover:bg-bg-0 disabled:opacity-40 disabled:cursor-default text-xs"
-                >
-                  Deselect all
-                </button>
-              </div>
-              <button
-                onClick={() => downloadBatch()}
-                disabled={selectedIds.size === 0 || downloading}
-                className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
-              >
-                {downloading
-                  ? "Downloading…"
-                  : `Download ${selectedIds.size || ""} as COG${
-                      selectedIds.size > 1 ? "s" : ""
-                    }…`}
-              </button>
-            </div>
+            <button
+              onClick={() => downloadBatch()}
+              disabled={selectedIds.size === 0 || downloading}
+              className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
+            >
+              {downloading
+                ? "Downloading…"
+                : `Download ${selectedIds.size || ""} as COG${
+                    selectedIds.size > 1 ? "s" : ""
+                  }…`}
+            </button>
           </div>
           <div className="max-h-72 overflow-auto">
             <table className="w-full text-xs">
               <thead className="bg-bg-2 sticky top-0">
                 <tr className="text-fg-muted">
-                  <th className="w-8 px-2 py-1.5"></th>
+                  <th className="w-8 px-2 py-1.5 text-center">
+                    {/* Master select/deselect for the visible result set.
+                        Tri-state via the .indeterminate property the
+                        useEffect at the top of the component keeps in
+                        sync — checked = all, unchecked = none, dashed
+                        box = partial. */}
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds(
+                            new Set(results.map((it) => it.id)),
+                          );
+                        } else {
+                          setSelectedIds(new Set());
+                        }
+                      }}
+                      aria-label="Select all visible results"
+                      title="Select all / deselect all"
+                    />
+                  </th>
                   <th className="text-left font-normal px-3 py-1.5">ID</th>
                   <th className="text-left font-normal px-3 py-1.5">Datetime</th>
                   <th className="text-right font-normal px-3 py-1.5">Cloud %</th>

@@ -60,6 +60,15 @@ class TerraScopeDock(QDockWidget):
         # let our bundle reach https:// resources.  PyQt6 nests the enum
         # under WebAttribute; PyQt5 has it flat.
         _enable_remote_content(view.settings())
+        # Suppress Qt/Chromium's default right-click menu inside the
+        # dock — the JS side wants to use right-click as a cancel
+        # gesture (e.g. to abort an AOI drag) and the Qt-level menu
+        # was blocking the contextmenu event from reaching JS.
+        try:
+            ctx = Qt.ContextMenuPolicy.NoContextMenu  # PyQt6
+        except AttributeError:  # PyQt5
+            ctx = Qt.NoContextMenu  # type: ignore[attr-defined]
+        view.setContextMenuPolicy(ctx)
         channel = QWebChannel(view.page())
         channel.registerObject("bridge", self.bridge)
         view.page().setWebChannel(channel)
