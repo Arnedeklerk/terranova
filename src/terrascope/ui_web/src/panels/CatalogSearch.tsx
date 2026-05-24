@@ -409,15 +409,32 @@ export function CatalogSearch() {
                 </span>
               )}
             </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => toggleAll()}
-                className="px-2 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded text-xs"
-              >
-                {selectedIds.size === results.length && results.length > 0
-                  ? "Clear all"
-                  : "Select all"}
-              </button>
+            <div className="flex gap-2 items-center">
+              {/* Two distinct buttons rather than one toggling label —
+                  the toggle made it hard to tell at a glance what
+                  clicking would do.  Each button disables itself when
+                  its action would be a no-op. */}
+              <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
+                <button
+                  onClick={() =>
+                    setSelectedIds(new Set(results.map((it) => it.id)))
+                  }
+                  disabled={
+                    results.length === 0 ||
+                    selectedIds.size === results.length
+                  }
+                  className="px-2 py-1 hover:bg-bg-0 disabled:opacity-40 disabled:cursor-default border-r border-bg-2 text-xs"
+                >
+                  Select all
+                </button>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  disabled={selectedIds.size === 0}
+                  className="px-2 py-1 hover:bg-bg-0 disabled:opacity-40 disabled:cursor-default text-xs"
+                >
+                  Deselect all
+                </button>
+              </div>
               <button
                 onClick={() => downloadBatch()}
                 disabled={selectedIds.size === 0 || downloading}
@@ -543,13 +560,6 @@ export function CatalogSearch() {
     });
   }
 
-  function toggleAll() {
-    setSelectedIds((prev) =>
-      prev.size === (results?.length ?? 0)
-        ? new Set()
-        : new Set((results ?? []).map((it) => it.id)),
-    );
-  }
 
   function previewItem(it: CatalogItem) {
     // Footprint preview is rendered locally by AoiMap (sync — fast,

@@ -143,6 +143,21 @@ export function AoiMap({
 
     // Drawing handlers — registered once, gated by drawingRef.current.active
     // so the same map can be panned normally when draw mode is off.
+
+    const abortDraw = () => {
+      const d = drawingRef.current;
+      if (d.rect) {
+        d.rect.remove();
+        d.rect = null;
+      }
+      d.start = null;
+      d.active = false;
+      map.dragging.enable();
+      if (containerRef.current) {
+        containerRef.current.style.cursor = "";
+      }
+    };
+
     const onMouseDown = (e: L.LeafletMouseEvent) => {
       const d = drawingRef.current;
       if (!d.active) return;
@@ -168,25 +183,41 @@ export function AoiMap({
       const north = Math.max(d.start.lat, end.lat);
       const west = Math.min(d.start.lng, end.lng);
       const east = Math.max(d.start.lng, end.lng);
-      if (d.rect) {
-        d.rect.remove();
-        d.rect = null;
-      }
-      d.start = null;
-      d.active = false;
-      map.dragging.enable();
+      abortDraw();
       // Don't draw degenerate boxes (single-click without drag).
       if (north - south < 1e-5 || east - west < 1e-5) return;
       onAoiChangeRef.current({ west, south, east, north });
     };
+    // Right-click during drag MUST cancel cleanly.  Leaflet fires
+    // `contextmenu` instead of `mouseup` for the right button, so
+    // without this the temporary rectangle leaks onto the map and
+    // never gets cleared — every subsequent right-click stacks
+    // another orphan polygon up.
+    const onContextMenu = (e: L.LeafletMouseEvent) => {
+      const d = drawingRef.current;
+      if (!d.active && !d.rect) return;
+      abortDraw();
+      // Suppress the OS context menu so right-clicking on the map
+      // can't accidentally pop up the page's right-click menu.
+      e.originalEvent?.preventDefault?.();
+    };
+    // Esc also cancels — symmetrical with the Expand-modal Esc handler.
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && drawingRef.current.active) abortDraw();
+    };
+
     map.on("mousedown", onMouseDown);
     map.on("mousemove", onMouseMove);
     map.on("mouseup", onMouseUp);
+    map.on("contextmenu", onContextMenu);
+    window.addEventListener("keydown", onEsc);
 
     return () => {
       map.off("mousedown", onMouseDown);
       map.off("mousemove", onMouseMove);
       map.off("mouseup", onMouseUp);
+      map.off("contextmenu", onContextMenu);
+      window.removeEventListener("keydown", onEsc);
       map.remove();
       mapRef.current = null;
     };
