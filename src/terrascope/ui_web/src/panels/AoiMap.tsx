@@ -24,6 +24,39 @@ export interface Bbox {
   north: number;
 }
 
+// Available basemaps.  Both are free without an API key; both require
+// attribution which is set in the tile layer options.  Keep them outside
+// the component so swap-on-toggle doesn't re-create the L.tileLayer
+// options object every render.
+type BasemapKey = "street" | "satellite";
+const BASEMAPS: Record<
+  BasemapKey,
+  { url: string; options: L.TileLayerOptions }
+> = {
+  street: {
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    options: {
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: "abcd",
+      maxZoom: 20,
+      keepBuffer: 4,
+    },
+  },
+  satellite: {
+    // Esri World Imagery — high-resolution global satellite mosaic from
+    // multiple providers.  Free for non-commercial and most commercial
+    // use with attribution; no API key required.
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    options: {
+      attribution:
+        "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+      maxZoom: 19,
+      keepBuffer: 4,
+    },
+  },
+};
+
 export interface FootprintSpec {
   id: string;
   geometry: { type: string; coordinates: unknown };
@@ -59,7 +92,9 @@ export function AoiMap({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const baseLayerRef = useRef<L.TileLayer | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [basemap, setBasemap] = useState<BasemapKey>("street");
   // Layers we control — held in refs so we can replace cleanly on prop
   // changes without React tree churn.
   const aoiLayerRef = useRef<L.Rectangle | null>(null);
@@ -101,23 +136,9 @@ export function AoiMap({
     requestAnimationFrame(() => {
       map.invalidateSize();
     });
-    // CartoDB Voyager — CDN-backed, allows subdomain sharding (parallel
-    // tile requests over HTTP/1 keepalive pools), substantially faster
-    // than openstreetmap.org's own server for embedded use.  Free with
-    // attribution, no API key required.  `{r}` substitutes "@2x" on
-    // high-DPI displays for crisp text.
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      {
-        attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: "abcd",
-        maxZoom: 20,
-        // Preload more tiles around the viewport so dragging stays
-        // ahead of the edge — fewer "grey square" moments.  Default 2.
-        keepBuffer: 4,
-      },
-    ).addTo(map);
+    // Initial tile layer is added by the basemap-effect below; we just
+    // need the map instance ready first so the effect has something to
+    // .addTo(...).
     mapRef.current = map;
 
     // Drawing handlers — registered once, gated by drawingRef.current.active
@@ -170,6 +191,21 @@ export function AoiMap({
       mapRef.current = null;
     };
   }, []);
+
+  // Basemap layer — replaced wholesale when the user toggles between
+  // street and satellite.  The new layer is added BEFORE the old one is
+  // removed so there's no flash of empty grey while tiles load.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const cfg = BASEMAPS[basemap];
+    const layer = L.tileLayer(cfg.url, cfg.options).addTo(map);
+    // Keep base tiles below footprint/AOI overlays.
+    layer.bringToBack();
+    const prev = baseLayerRef.current;
+    baseLayerRef.current = layer;
+    if (prev) prev.remove();
+  }, [basemap]);
 
   // Re-render the AOI rectangle when prop changes; fit view to it the
   // first time so the user sees their AOI without panning.
@@ -324,6 +360,35 @@ export function AoiMap({
                 title="Click then drag on the map to draw an AOI rectangle"
               >
                 Draw AOI
+              </button>
+            </div>
+            {/* Basemap toggle — Map (Carto Voyager) vs Satellite (Esri).
+                Single click switches; tiles swap without remounting the
+                map, so AOI + footprints stay put. */}
+            <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
+              <button
+                onClick={() => setBasemap("street")}
+                className={
+                  "px-2.5 py-1 border-r border-bg-2 " +
+                  (basemap === "street"
+                    ? "bg-accent text-white"
+                    : "hover:bg-bg-0")
+                }
+                title="Street map basemap"
+              >
+                Map
+              </button>
+              <button
+                onClick={() => setBasemap("satellite")}
+                className={
+                  "px-2.5 py-1 " +
+                  (basemap === "satellite"
+                    ? "bg-accent text-white"
+                    : "hover:bg-bg-0")
+                }
+                title="Satellite imagery basemap (Esri World Imagery)"
+              >
+                Satellite
               </button>
             </div>
             <button
