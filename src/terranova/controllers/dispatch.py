@@ -78,15 +78,6 @@ class Controllers:
         self._handlers["sam.pick_points.stop"] = _sam.stop_pick_points
         self._handlers["foundation.run"] = _foundation.run
 
-        # Web-sourced training-vector fetchers — long-running, emit
-        # task.progress/complete/failed on a job_id.  Used by the
-        # Classify panel's 'Find from OSM' / 'Find from WorldCover'
-        # buttons.
-        from . import training as _training
-
-        self._handlers["training.from_osm"] = _training.from_osm
-        self._handlers["training.from_worldcover"] = _training.from_worldcover
-
     def dispatch(self, action: str, payload: dict[str, Any]) -> CommandResult:
         handler = self._handlers.get(action)
         if handler is None:

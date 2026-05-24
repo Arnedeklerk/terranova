@@ -43,11 +43,6 @@ export function Classify() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  // Training-vector fetch state (separate from the main classify job
-  // so the user can fetch a training set without overwriting the
-  // classify run's progress display).
-  const [trainingJobId, setTrainingJobId] = useState<string | null>(null);
-  const [findingTraining, setFindingTraining] = useState(false);
 
   // Initial + refresh of layer lists.
   const refreshLayers = async () => {
@@ -105,11 +100,7 @@ export function Classify() {
         "Vector files (*.gpkg *.shp *.geojson *.json *.kml *.gpx);;All files (*.*)",
     });
     if (!r.ok || !r.result?.path) return;
-    selectAsVector(r.result.path);
-  };
-
-  /** Add a freshly-discovered file path to the dropdown and select it. */
-  const selectAsVector = (path: string) => {
+    const path = r.result.path;
     const name = path.split(/[/\\]/).pop() || path;
     setVectors((prev) =>
       prev.some((v) => v.source === path)
@@ -117,42 +108,6 @@ export function Classify() {
         : [...prev, { name: `(file) ${name}`, source: path }],
     );
     setVectorSrc(path);
-  };
-
-  /**
-   * Kick off a server-side training-data fetch.  Both buttons funnel
-   * through here; they only differ in which bridge action runs.
-   *
-   * - OSM (`training.from_osm`) pulls landuse / natural polygons from
-   *   Overpass for the raster's WGS84 extent.
-   * - WorldCover (`training.from_worldcover`) samples stratified
-   *   random points from ESA WorldCover (10 m global LC) for the
-   *   same extent via Planetary Computer's STAC.
-   *
-   * The QgsTask emits the usual task.progress/complete/failed events,
-   * which our dedicated <JobProgress /> below listens for.  On
-   * completion the result.output_path is auto-selected as the
-   * training vector.
-   */
-  const findTraining = async (
-    action: "training.from_osm" | "training.from_worldcover",
-  ) => {
-    if (!rasterSrc) {
-      setErr("Pick an input raster first — its extent defines the search AOI.");
-      return;
-    }
-    setErr(null);
-    setFindingTraining(true);
-    setTrainingJobId(null);
-    const r = await invoke<{ job_id: string }>(action, {
-      raster_path: rasterSrc,
-    });
-    if (r.ok && r.result?.job_id) {
-      setTrainingJobId(r.result.job_id);
-    } else {
-      setFindingTraining(false);
-      setErr(r.error ?? `${action} failed`);
-    }
   };
 
   const run = async () => {
@@ -215,7 +170,7 @@ export function Classify() {
 
         <Field
           label="Training vector (polygons / points)"
-          hint="Pick a loaded layer, Browse to a file on disk, or fetch one from the web for the raster's extent."
+          hint="Pick a loaded layer, or Browse to a file on disk (.gpkg, .shp, .geojson…)"
         >
           <div className="flex gap-2">
             <select
@@ -238,46 +193,7 @@ export function Classify() {
               Browse…
             </button>
           </div>
-          {/* Web-sourced training set. Both buttons require an input
-              raster to be picked first (the raster's extent defines the
-              AOI we query against).  Disabled while a fetch is already
-              running so the user can't double-tap. */}
-          <div className="flex flex-wrap gap-2 mt-1.5 items-center">
-            <span className="text-xs text-fg-muted/70">or fetch for the raster's extent:</span>
-            <button
-              onClick={() => findTraining("training.from_osm")}
-              disabled={findingTraining || !rasterSrc}
-              className="px-2.5 py-1 bg-bg-1 hover:bg-bg-2 border border-bg-2 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Fetch OpenStreetMap landuse / natural polygons via Overpass. Real polygons you can QA before training; coverage varies by region."
-            >
-              From OSM ↓
-            </button>
-            <button
-              onClick={() => findTraining("training.from_worldcover")}
-              disabled={findingTraining || !rasterSrc}
-              className="px-2.5 py-1 bg-bg-1 hover:bg-bg-2 border border-bg-2 rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Sample stratified random points from ESA WorldCover 10m global land cover. 11 classes, global coverage; points only."
-            >
-              From WorldCover ↓
-            </button>
-          </div>
         </Field>
-
-        {/* Progress / completion for the training-data fetch.  Separate
-            from the main classify-run JobProgress so finishing a fetch
-            doesn't get confused with finishing a classification. */}
-        <JobProgress
-          jobId={trainingJobId}
-          onComplete={(result) => {
-            setFindingTraining(false);
-            const r = result as { output_path?: string; feature_count?: number } | null;
-            if (r?.output_path) selectAsVector(r.output_path);
-          }}
-          onFailed={(e) => {
-            setFindingTraining(false);
-            setErr(e);
-          }}
-        />
 
         <Field label="Class field on the vector layer">
           <select
