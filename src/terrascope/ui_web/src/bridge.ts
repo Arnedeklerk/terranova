@@ -18,7 +18,9 @@ export interface CommandResult<T = Json> {
 
 interface BridgeObject {
   invoke(raw: string): Promise<string> | string;
-  event: { connect(cb: (raw: string) => void): void };
+  // Renamed from `event` because that name shadows QObject.event() and
+  // PyQt6 QWebChannel silently failed to expose it to JS.
+  payload: { connect(cb: (raw: string) => void): void };
 }
 
 let bridge: BridgeObject | null = null;
@@ -45,7 +47,21 @@ export async function initBridge(): Promise<void> {
   await new Promise<void>((res) => {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       bridge = channel.objects.bridge ?? null;
-      bridge?.event.connect((raw) => {
+      if (!bridge) {
+        console.error("bridge: object 'bridge' missing from QWebChannel");
+        res();
+        return;
+      }
+      if (!bridge.payload || typeof bridge.payload.connect !== "function") {
+        console.error(
+          "bridge: 'payload' signal missing from bridge object — " +
+            "events from Python will not reach the UI",
+          Object.keys(bridge),
+        );
+        res();
+        return;
+      }
+      bridge.payload.connect((raw) => {
         try {
           const payload = JSON.parse(raw);
           eventListeners.forEach((l) => l(payload));
@@ -97,6 +113,6 @@ function stubBridge(): BridgeObject {
       }
       return JSON.stringify({ ok: false, error: `stub bridge: unknown action ${action}` });
     },
-    event: { connect: () => {} },
+    payload: { connect: () => {} },
   };
 }

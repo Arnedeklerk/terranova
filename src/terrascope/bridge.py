@@ -61,11 +61,15 @@ class Bridge(QObject):
     """QObject exposed to the web tier over QWebChannel."""
 
     # Public signal — QWebChannel forwards each emit to JS.
-    event = pyqtSignal(str)  # JSON-encoded message → web
+    # NB: do NOT name this `event` — that shadows QObject.event() (the Qt
+    # event-filter virtual) and on PyQt6 QWebChannel silently fails to
+    # expose the signal to JS as a result.  The JS side subscribes to
+    # `bridge.payload.connect(...)`.
+    payload = pyqtSignal(str)  # JSON-encoded message → web
 
     # Internal self-signal used to marshal cross-thread emits onto the main
     # thread.  push_event() emits this; the connected _on_internal slot —
-    # which lives on the main thread — does the actual `event.emit(...)`.
+    # which lives on the main thread — does the actual `payload.emit(...)`.
     _internal = pyqtSignal(str)
 
     def __init__(self, controllers: Controllers | None = None) -> None:
@@ -91,6 +95,7 @@ class Bridge(QObject):
 
         global _active_bridge
         _active_bridge = self
+        self._log("Bridge initialised; event signal=payload")
 
     def __del__(self) -> None:  # pragma: no cover
         global _active_bridge
@@ -122,17 +127,31 @@ class Bridge(QObject):
         """Send an event to the web tier.  Safe from any thread.
 
         Internally hops through ``_internal`` (Qt::QueuedConnection) so the
-        actual ``event.emit`` always runs on the main thread, which is
+        actual ``payload.emit`` always runs on the main thread, which is
         where QWebChannel forwards from.
         """
         import json
 
-        self._internal.emit(json.dumps(payload))
+        try:
+            raw = json.dumps(payload)
+        except (TypeError, ValueError) as exc:
+            self._log(f"push_event: payload not JSON-serialisable: {exc!r}")
+            return
+        self._internal.emit(raw)
 
     @pyqtSlot(str)
     def _on_internal(self, payload_str: str) -> None:
-        """Always runs on the Bridge's owner thread (main)."""
-        self.event.emit(payload_str)
+        """Always runs on the Bridge's owner thread (main).
+
+        Logs a diagnostic line for each emit so we can confirm the chain
+        ``push_event → _internal → _on_internal → payload`` actually reaches
+        the QWebChannel-facing signal.  If events stop arriving at the web
+        tier, this line tells us whether Python or the channel is at fault.
+        """
+        # Truncate huge payloads — full body is on the JS side anyway.
+        preview = payload_str[:200] + ("…" if len(payload_str) > 200 else "")
+        self._log(f"payload.emit: {preview}")
+        self.payload.emit(payload_str)
 
     # ------------------------------------------------------------------ #
     # QGIS log forwarding                                                #
@@ -151,7 +170,8 @@ class Bridge(QObject):
 
         try:
             log = QgsApplication.messageLog()
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            self._log(f"messageLog() unavailable: {exc!r}")
             return
 
         # messageReceived has different signatures across QGIS versions;
@@ -159,7 +179,8 @@ class Bridge(QObject):
         # 3.20.
         try:
             log.messageReceived.connect(self._on_qgis_log)
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            self._log(f"messageReceived.connect failed: {exc!r}")
             return
 
     def _on_qgis_log(self, message: str, tag: str, level: int) -> None:
@@ -167,7 +188,12 @@ class Bridge(QObject):
 
         Note: this runs in whatever thread emitted the log, so route it
         through ``push_event`` to get main-thread marshalling for free.
+        Avoid forwarding our own diagnostics under the "TerraScope.bridge"
+        tag — otherwise the bridge logs about itself trigger a fresh log
+        event for each emit and we get an infinite loop.
         """
+        if tag == "TerraScope.bridge":
+            return
         try:
             self.push_event(
                 {
@@ -178,4 +204,23 @@ class Bridge(QObject):
                 }
             )
         except Exception:  # noqa: BLE001 — never let logging crash anything
+            pass
+
+    # ------------------------------------------------------------------ #
+    # Diagnostic                                                          #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _log(message: str) -> None:
+        """Write a diagnostic line to QGIS's native log.
+
+        Tagged ``TerraScope.bridge`` so it's filterable, and skipped by
+        ``_on_qgis_log`` to avoid feedback loops.
+        """
+        try:
+            from qgis.core import Qgis, QgsMessageLog
+
+            QgsMessageLog.logMessage(
+                message, "TerraScope.bridge", Qgis.MessageLevel.Info
+            )
+        except Exception:  # noqa: BLE001 — headless tests, no QGIS
             pass
