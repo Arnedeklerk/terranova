@@ -10,6 +10,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from . import _keepalive
+
 
 def run(payload: dict[str, Any]) -> dict[str, Any]:
     """Start an accuracy-report job.  Returns the job_id immediately."""
@@ -31,6 +33,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         class_field=class_field,
         output_pdf=output_pdf,
     )
+    _keepalive.hold(job_id, task)
     QgsApplication.taskManager().addTask(task)
     return {"job_id": job_id}
 
@@ -109,27 +112,30 @@ def _do_accuracy(task: Any) -> bool:
 def _on_finished(task: Any, ok: bool) -> None:
     from ..bridge import push_event
 
-    if ok:
-        push_event(
-            {
-                "type": "task.complete",
-                "job_id": task.job_id,
-                "result": {
-                    "output_path": str(task.output_pdf),
-                    "overall_accuracy": task.overall,
-                    "kappa": task.kappa,
-                    "n_samples": task.n_samples,
-                },
-            }
-        )
-    else:
-        push_event(
-            {
-                "type": "task.failed",
-                "job_id": task.job_id,
-                "error": task.error_text or "Cancelled.",
-            }
-        )
+    try:
+        if ok:
+            push_event(
+                {
+                    "type": "task.complete",
+                    "job_id": task.job_id,
+                    "result": {
+                        "output_path": str(task.output_pdf),
+                        "overall_accuracy": task.overall,
+                        "kappa": task.kappa,
+                        "n_samples": task.n_samples,
+                    },
+                }
+            )
+        else:
+            push_event(
+                {
+                    "type": "task.failed",
+                    "job_id": task.job_id,
+                    "error": task.error_text or "Cancelled.",
+                }
+            )
+    finally:
+        _keepalive.release(task.job_id)
 
 
 def _emit(task: Any, percent: float, status: str) -> None:

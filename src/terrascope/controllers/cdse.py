@@ -16,6 +16,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from . import _keepalive
+
 
 def status(_payload: dict[str, Any]) -> dict[str, Any]:
     from ..core.catalog.cdse import load_cached_token
@@ -39,6 +41,7 @@ def signin(_payload: dict[str, Any]) -> dict[str, Any]:
 
     job_id = str(uuid.uuid4())
     task = _build_task(job_id=job_id)
+    _keepalive.hold(job_id, task)
     QgsApplication.taskManager().addTask(task)
     return {"job_id": job_id}
 
@@ -102,14 +105,17 @@ def _do_signin(task: Any) -> bool:
 def _on_finished(task: Any, ok: bool) -> None:
     from ..bridge import push_event
 
-    push_event(
-        {
-            "type": "task.complete" if ok else "task.failed",
-            "job_id": task.job_id,
-            "result": {} if ok else None,
-            "error": None if ok else (task.error_text or "Cancelled."),
-        }
-    )
+    try:
+        push_event(
+            {
+                "type": "task.complete" if ok else "task.failed",
+                "job_id": task.job_id,
+                "result": {} if ok else None,
+                "error": None if ok else (task.error_text or "Cancelled."),
+            }
+        )
+    finally:
+        _keepalive.release(task.job_id)
 
 
 def _emit(task: Any, percent: float, status: str) -> None:

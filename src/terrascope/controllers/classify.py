@@ -18,6 +18,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from . import _keepalive
+
 
 def run(payload: dict[str, Any]) -> dict[str, Any]:
     """Start a classify job.  Returns the job_id immediately."""
@@ -42,6 +44,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         cv_folds=int(payload.get("cv_folds", 5)),
         output_path=output_path,
     )
+    _keepalive.hold(job_id, task)
     QgsApplication.taskManager().addTask(task)
     return {"job_id": job_id}
 
@@ -148,30 +151,33 @@ def _on_finished(task: Any, ok: bool) -> None:
     """Main-thread callback — emit the terminal event and add the layer."""
     from ..bridge import push_event
 
-    if ok and task.result_path is not None:
-        push_event(
-            {
-                "type": "task.complete",
-                "job_id": task.job_id,
-                "result": {"output_path": str(task.result_path)},
-            }
-        )
-        try:
-            from qgis.core import QgsProject, QgsRasterLayer
+    try:
+        if ok and task.result_path is not None:
+            push_event(
+                {
+                    "type": "task.complete",
+                    "job_id": task.job_id,
+                    "result": {"output_path": str(task.result_path)},
+                }
+            )
+            try:
+                from qgis.core import QgsProject, QgsRasterLayer
 
-            layer = QgsRasterLayer(str(task.result_path), task.result_path.stem)
-            if layer.isValid():
-                QgsProject.instance().addMapLayer(layer)
-        except Exception:  # noqa: BLE001
-            pass
-    else:
-        push_event(
-            {
-                "type": "task.failed",
-                "job_id": task.job_id,
-                "error": task.error_text or "Cancelled.",
-            }
-        )
+                layer = QgsRasterLayer(str(task.result_path), task.result_path.stem)
+                if layer.isValid():
+                    QgsProject.instance().addMapLayer(layer)
+            except Exception:  # noqa: BLE001
+                pass
+        else:
+            push_event(
+                {
+                    "type": "task.failed",
+                    "job_id": task.job_id,
+                    "error": task.error_text or "Cancelled.",
+                }
+            )
+    finally:
+        _keepalive.release(task.job_id)
 
 
 def _emit(task: Any, percent: float, status: str) -> None:

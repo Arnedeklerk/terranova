@@ -11,6 +11,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from . import _keepalive
+
 
 def run(payload: dict[str, Any]) -> dict[str, Any]:
     from qgis.core import QgsApplication
@@ -39,6 +41,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         train_masks=train_masks,
         out_dir=out_dir,
     )
+    _keepalive.hold(job_id, task)
     QgsApplication.taskManager().addTask(task)
     return {"job_id": job_id}
 
@@ -117,27 +120,30 @@ def _do_finetune(task: Any) -> bool:
 def _on_finished(task: Any, ok: bool) -> None:
     from ..bridge import push_event
 
-    if ok:
-        push_event(
-            {
-                "type": "task.complete",
-                "job_id": task.job_id,
-                "result": {
-                    "checkpoint_path": str(task.checkpoint_path)
-                    if task.checkpoint_path
-                    else None,
-                    "onnx_path": str(task.onnx_path) if task.onnx_path else None,
-                },
-            }
-        )
-    else:
-        push_event(
-            {
-                "type": "task.failed",
-                "job_id": task.job_id,
-                "error": task.error_text or "Cancelled.",
-            }
-        )
+    try:
+        if ok:
+            push_event(
+                {
+                    "type": "task.complete",
+                    "job_id": task.job_id,
+                    "result": {
+                        "checkpoint_path": str(task.checkpoint_path)
+                        if task.checkpoint_path
+                        else None,
+                        "onnx_path": str(task.onnx_path) if task.onnx_path else None,
+                    },
+                }
+            )
+        else:
+            push_event(
+                {
+                    "type": "task.failed",
+                    "job_id": task.job_id,
+                    "error": task.error_text or "Cancelled.",
+                }
+            )
+    finally:
+        _keepalive.release(task.job_id)
 
 
 def _emit(task: Any, percent: float, status: str) -> None:

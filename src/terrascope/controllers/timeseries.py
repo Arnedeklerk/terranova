@@ -12,6 +12,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from . import _keepalive
+
 
 def run(payload: dict[str, Any]) -> dict[str, Any]:
     from qgis.core import QgsApplication
@@ -46,6 +48,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         export_mp4=bool(payload.get("export_mp4", True)),
         out_dir=out_dir,
     )
+    _keepalive.hold(job_id, task)
     QgsApplication.taskManager().addTask(task)
     return {"job_id": job_id}
 
@@ -196,38 +199,41 @@ def _compute_index(kind: str, cube: Any, nd_fn: Any) -> Any:
 def _on_finished(task: Any, ok: bool) -> None:
     from ..bridge import push_event
 
-    if ok:
-        push_event(
-            {
-                "type": "task.complete",
-                "job_id": task.job_id,
-                "result": {
-                    "break_path": str(task.break_path) if task.break_path else None,
-                    "magnitude_path": str(task.magnitude_path)
-                    if task.magnitude_path
-                    else None,
-                    "mp4_path": str(task.mp4_path) if task.mp4_path else None,
-                },
-            }
-        )
-        # Auto-add the break-index raster to QGIS.
-        try:
-            from qgis.core import QgsProject, QgsRasterLayer
+    try:
+        if ok:
+            push_event(
+                {
+                    "type": "task.complete",
+                    "job_id": task.job_id,
+                    "result": {
+                        "break_path": str(task.break_path) if task.break_path else None,
+                        "magnitude_path": str(task.magnitude_path)
+                        if task.magnitude_path
+                        else None,
+                        "mp4_path": str(task.mp4_path) if task.mp4_path else None,
+                    },
+                }
+            )
+            # Auto-add the break-index raster to QGIS.
+            try:
+                from qgis.core import QgsProject, QgsRasterLayer
 
-            if task.break_path:
-                layer = QgsRasterLayer(str(task.break_path), task.break_path.stem)
-                if layer.isValid():
-                    QgsProject.instance().addMapLayer(layer)
-        except Exception:  # noqa: BLE001
-            pass
-    else:
-        push_event(
-            {
-                "type": "task.failed",
-                "job_id": task.job_id,
-                "error": task.error_text or "Cancelled.",
-            }
-        )
+                if task.break_path:
+                    layer = QgsRasterLayer(str(task.break_path), task.break_path.stem)
+                    if layer.isValid():
+                        QgsProject.instance().addMapLayer(layer)
+            except Exception:  # noqa: BLE001
+                pass
+        else:
+            push_event(
+                {
+                    "type": "task.failed",
+                    "job_id": task.job_id,
+                    "error": task.error_text or "Cancelled.",
+                }
+            )
+    finally:
+        _keepalive.release(task.job_id)
 
 
 def _emit(task: Any, percent: float, status: str) -> None:
