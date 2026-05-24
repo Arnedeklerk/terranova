@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { invoke } from "../bridge";
 import { formatDMS, parseDMS } from "./dms";
+import { JobProgress } from "./JobProgress";
+
+interface CatalogItem {
+  id: string;
+  datetime: string;
+  cloud: number | null;
+  platform: string | null;
+}
 
 /**
  * STAC catalogue search panel.
@@ -35,8 +43,12 @@ export function CatalogSearch() {
   const [end, setEnd] = useState("2024-09-30");
   const [maxCloud, setMaxCloud] = useState(20);
   const [busy, setBusy] = useState(false);
-  const [results, setResults] = useState<unknown[] | null>(null);
+  const [results, setResults] = useState<CatalogItem[] | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const [downloadJobId, setDownloadJobId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const currentBbox = (): {
     west: number;
@@ -87,6 +99,7 @@ export function CatalogSearch() {
     setBusy(true);
     setErr(null);
     setResults(null);
+    setSelected(null);
     try {
       const bbox = currentBbox();
       if (
@@ -103,7 +116,7 @@ export function CatalogSearch() {
       if (bbox.north <= bbox.south) {
         throw new Error("NW latitude must be greater than SE latitude.");
       }
-      const res = await invoke<{ items: unknown[] }>("catalog.search", {
+      const res = await invoke<{ items: CatalogItem[] }>("catalog.search", {
         endpoint,
         collection,
         bbox,
@@ -248,13 +261,122 @@ export function CatalogSearch() {
       </div>
 
       {err && <p className="text-danger text-sm mt-3">{err}</p>}
+
       {results && (
-        <p className="text-fg-muted text-sm mt-3">
-          {results.length} item{results.length === 1 ? "" : "s"} found.
-        </p>
+        <div className="mt-4 bg-bg-1 border border-bg-2 rounded-md overflow-hidden">
+          <div className="px-3 py-2 flex items-center justify-between border-b border-bg-2">
+            <span className="text-xs text-fg-muted">
+              {results.length} item{results.length === 1 ? "" : "s"} found
+              {selected && <span className="ml-2 text-accent">— 1 selected</span>}
+            </span>
+            <button
+              onClick={() => downloadSelected()}
+              disabled={!selected || downloading}
+              className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
+            >
+              {downloading ? "Downloading…" : "Download selected as COG…"}
+            </button>
+          </div>
+          <div className="max-h-72 overflow-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-bg-2 sticky top-0">
+                <tr className="text-fg-muted">
+                  <th className="text-left font-normal px-3 py-1.5">ID</th>
+                  <th className="text-left font-normal px-3 py-1.5">Datetime</th>
+                  <th className="text-right font-normal px-3 py-1.5">Cloud %</th>
+                  <th className="text-left font-normal px-3 py-1.5">Platform</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="text-center text-fg-muted py-4"
+                    >
+                      No items matched.  Widen the date range or cloud cap.
+                    </td>
+                  </tr>
+                )}
+                {results.map((it) => {
+                  const active = selected === it.id;
+                  return (
+                    <tr
+                      key={it.id}
+                      onClick={() => setSelected(it.id)}
+                      className={
+                        "cursor-pointer border-t border-bg-2 " +
+                        (active ? "bg-accent/20 text-fg" : "hover:bg-bg-2")
+                      }
+                    >
+                      <td className="px-3 py-1.5 font-mono truncate max-w-[16rem]">
+                        {it.id}
+                      </td>
+                      <td className="px-3 py-1.5 font-mono">
+                        {String(it.datetime).slice(0, 19).replace("T", " ")}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono">
+                        {it.cloud == null ? "—" : it.cloud.toFixed(1)}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        {it.platform ?? "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
+
+      <JobProgress
+        jobId={downloadJobId}
+        onComplete={() => setDownloading(false)}
+        onFailed={(e) => {
+          setDownloading(false);
+          setErr(e);
+        }}
+      />
     </section>
   );
+
+  async function downloadSelected() {
+    if (!selected) return;
+    setErr(null);
+    setDownloading(true);
+    const r = await invoke<{ path: string }>("dialog.save_file", {
+      default: `${selected}.tif`,
+      title: "Save as COG",
+      filter: "Cloud-Optimised GeoTIFF (*.tif)",
+    });
+    if (!r.ok || !r.result?.path) {
+      setDownloading(false);
+      return;
+    }
+    const out_path = r.result.path;
+    let bbox;
+    try {
+      bbox = currentBbox();
+    } catch (e) {
+      setDownloading(false);
+      setErr((e as Error).message);
+      return;
+    }
+    const dl = await invoke<{ job_id: string }>("catalog.download", {
+      endpoint,
+      collection,
+      item_id: selected,
+      bbox,
+      out_path,
+    });
+    if (dl.ok && dl.result?.job_id) {
+      setDownloadJobId(dl.result.job_id);
+    } else {
+      setDownloading(false);
+      setErr(dl.error ?? "catalog.download failed");
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
