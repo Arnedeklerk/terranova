@@ -30,11 +30,31 @@ const ALLOWED_FIELDS = new Set([
 
 // UUID v4 regex (loose — accept any v).  installation_id must be a UUID.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SEMVER_RE = /^\d+\.\d+\.\d+([a-z0-9.+\-]+)?$/i;
+// SemVer-ish.  The optional suffix MUST start with '-' or '+' so it can
+// never compete with the third \d+ for the same characters — without
+// that anchor, an input like "9.9.9" followed by many '0's hits
+// polynomial backtracking (CodeQL js/polynomial-redos).  Suffix body
+// uses ASCII identifier chars only; no embedded literal '+'.
+const SEMVER_RE = /^\d+\.\d+\.\d+(?:[-+][a-z0-9.\-]+)?$/i;
 const EVENT_NAME_RE = /^[a-z][a-z0-9_.]{0,63}$/;
 const OS_RE = /^[A-Za-z][A-Za-z0-9 ._\-]{0,63}$/;
 const QGIS_RE = /^[\w.\-]{1,32}$/;
 const ISO_TS_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+\-]\d{2}:?\d{2})$/;
+
+// Hard input-length caps applied BEFORE running regex tests.  Each value
+// is well above the legitimate maximum (semver is short, UUID is 36
+// chars, ISO timestamp is ~32) so we can reject pathological inputs
+// without affecting real payloads.  Defence in depth against
+// regex-backtracking inputs: even if a regex turns out to be quadratic
+// later, the worst case is 64-char input, which is fast.
+const MAX_FIELD_LEN: Record<string, number> = {
+  event_name: 64,
+  plugin_version: 64,
+  qgis_version: 32,
+  os: 64,
+  installation_id: 36,
+  timestamp: 40,
+};
 
 interface Event {
   event_name: string;
@@ -104,6 +124,12 @@ function validate(raw: unknown): { ok: true; value: Event } | { ok: false; error
     if (!(field in obj)) return { ok: false, error: `missing field: ${field}` };
     if (typeof obj[field] !== "string") {
       return { ok: false, error: `field ${field} must be a string` };
+    }
+    // Length cap BEFORE regex testing — pathological inputs can't reach
+    // the regex engine in the first place.
+    const max = MAX_FIELD_LEN[field] ?? 256;
+    if ((obj[field] as string).length > max) {
+      return { ok: false, error: `field ${field} exceeds ${max} chars` };
     }
   }
   const v = obj as Record<string, string>;
