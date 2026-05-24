@@ -13,8 +13,8 @@
         <translation>TerraScope</translation>
     </message>
     <message>
-        <source>Classify Earth, gracefully.</source>
-        <translation>Classifier la Terre, avec elegance.</translation>
+        <source>Earth observation for QGIS</source>
+        <translation>Observation de la Terre pour QGIS</translation>
     </message>
     <message>
         <source>Welcome to TerraScope</source>

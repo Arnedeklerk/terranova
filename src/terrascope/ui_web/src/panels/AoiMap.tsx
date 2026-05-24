@@ -471,13 +471,13 @@ export function AoiMap({
           ref={containerRef}
           className="w-full"
           style={{
-            // GPU compositing hints — promote the map container to its
-            // own composited layer so pan/zoom blits are done on the
-            // GPU instead of the CPU.  Single biggest source of
-            // residual jank inside QtWebEngine embeds.
+            // GPU compositing hint.  We tried `transform: translateZ(0)`
+            // here too, but it created a stacking context on the
+            // OUTER container which broke Leaflet's overlay-pane
+            // rendering — vector layers (AOI rectangle, footprints)
+            // stopped appearing.  `willChange` alone gives the
+            // compositor the hint without forcing a new layer.
             willChange: "transform",
-            transform: "translateZ(0)",
-            backfaceVisibility: "hidden",
             ...(expanded
               ? { flex: "1 1 auto", minHeight: 0 }
               : { aspectRatio: "3 / 2", minHeight: 340 }),

@@ -30,7 +30,7 @@ export function App() {
     <div className="min-h-screen flex flex-col">
       <header className="px-6 py-4 border-b border-bg-2 flex items-baseline gap-3">
         <h1 className="text-lg font-semibold tracking-tight">TerraScope</h1>
-        <span className="text-fg-muted text-xs">Classify Earth, gracefully.</span>
+        <span className="text-fg-muted text-xs">Earth observation for QGIS</span>
 
         <nav className="ml-6 flex gap-1 text-xs flex-wrap">
           {(

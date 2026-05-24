@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">=3.10,<3.13"
 license = { text = "GPL-3.0-or-later" }
 authors = [
-    { name = "Arne de Klerk", email = "arne@knetminer.com" },
     { name = "Cole Battell" },
+    { name = "Arne de Klerk", email = "arne@knetminer.com" },
 ]
 keywords = ["qgis", "remote-sensing", "classification", "earth-observation", "stac"]
 classifiers = [
@@ -92,10 +92,9 @@ dev = [
 terrascope = "terrascope.cli:main"
 
 [project.urls]
-Homepage = "https://terrascope.app"
-Repository = "https://github.com/terrascope-rs/terrascope"
-Issues = "https://github.com/terrascope-rs/terrascope/issues"
-Documentation = "https://docs.terrascope.app"
+Homepage = "https://github.com/Arnedeklerk/terrascope"
+Repository = "https://github.com/Arnedeklerk/terrascope"
+Issues = "https://github.com/Arnedeklerk/terrascope/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/terrascope"]

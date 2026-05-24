@@ -1,15 +1,15 @@
 # TerraScope
 
-> Classify Earth, gracefully.
+> Earth observation for QGIS.
 
-A modern QGIS plugin (3.40+ / 4.x) for semi-automatic classification, foundation-model inference, and time-series change detection. Built on a STAC-first, COG / xarray pipeline with a Fluent-style PyQt UI and an optional embedded React panel via QtWebEngine.
+A modern QGIS plugin (3.40+ / 4.x) for STAC search, classification, accuracy reporting, and time-series change detection. Built on a STAC-first, COG / xarray pipeline with native Qt dialogs *and* a React-in-QWebEngine dock with an embedded interactive Leaflet map for AOI picking and footprint inspection.
 
-**Status:** Phase 0 — prototype skeleton.
+**Status:** experimental — usable end-to-end for catalogue search + classification + change detection, but expect rough edges.
 
 ## Authors
 
 - Cole Battell
-- Arné de Klerk — KnetMiner/ Rothamsted Research
+- Arné de Klerk — KnetMiner / Rothamsted Research
 
 ## Why
 
@@ -40,7 +40,7 @@ See [docs/architecture.md](docs/architecture.md) for the full diagram.
 
 ```bash
 # Clone and install dev deps (Python 3.10–3.12)
-git clone https://github.com/terrascope-rs/terrascope
+git clone https://github.com/Arnedeklerk/terrascope
 cd terrascope
 uv sync --all-extras --dev
 
