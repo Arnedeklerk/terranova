@@ -100,17 +100,39 @@ def _build_download_task(**kwargs: Any):  # type: ignore[no-untyped-def]
 def _do_download(task: Any) -> bool:
     from qgis.core import Qgis, QgsMessageLog
 
+    # Emit the first heartbeat BEFORE any heavy import so the user sees that
+    # the task actually started.  The odc.stac + rioxarray imports can take
+    # several seconds on first run; without this the bar sits at 0% with no
+    # status text and looks frozen.
     try:
+        _emit(task, 1, "Starting download…")
+    except Exception:  # noqa: BLE001 — last-ditch
+        QgsMessageLog.logMessage(
+            "Download task started but couldn't emit progress event — "
+            "bridge may be disconnected.  Result will still land in the layer "
+            "panel when done.",
+            "TerraScope",
+            Qgis.MessageLevel.Warning,
+        )
+
+    try:
+        _emit(task, 2, "Loading geospatial libraries…")
         import odc.stac
         import rioxarray  # noqa: F401  (registers .rio accessor)
 
-        _emit(task, 5, "Re-fetching item from STAC…")
+        _emit(task, 5, f"Refetching item {task.item_id} from STAC…")
         client = _open_client(task.endpoint)
+        if task.isCanceled():
+            return False
+
         items = list(client.search(ids=[task.item_id], max_items=1).item_collection())
         if not items:
             raise RuntimeError(f"could not refetch item {task.item_id!r}")
+        _emit(task, 20, f"Item resolved.  Bands: {', '.join(task.bands)}")
+        if task.isCanceled():
+            return False
 
-        _emit(task, 30, f"Loading lazy cube ({', '.join(task.bands)})…")
+        _emit(task, 30, "Reading band manifests + signing URLs…")
         cube = odc.stac.load(
             items,
             bands=task.bands,
@@ -119,10 +141,12 @@ def _do_download(task: Any) -> bool:
         if task.isCanceled():
             return False
 
-        _emit(task, 60, "Clipping to AOI…")
+        _emit(task, 50, "Clipping to AOI…")
         cube = cube.rio.clip_box(*task.bbox, crs="EPSG:4326")
+        if task.isCanceled():
+            return False
 
-        _emit(task, 80, f"Writing {task.out_path.name}…")
+        _emit(task, 70, f"Downloading pixels + writing {task.out_path.name}…")
         task.out_path.parent.mkdir(parents=True, exist_ok=True)
         cube.rio.to_raster(str(task.out_path), compress="deflate", tiled=True)
         task.result_path = task.out_path

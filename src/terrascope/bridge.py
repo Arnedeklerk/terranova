@@ -36,10 +36,21 @@ def push_event(payload: dict[str, Any]) -> None:
 
     Safe to call from the GUI thread.  Qt queues signal emissions across
     threads, so calling from a QgsTask worker is also safe — the React side
-    receives the event on its event loop.  No-op if no bridge is active
-    (e.g. when imported outside QGIS for tests).
+    receives the event on its event loop.  Logs (rather than silently
+    dropping) if no bridge is active, so a closed-mid-task dock leaves a
+    visible breadcrumb in the QGIS log.
     """
     if _active_bridge is None:
+        try:
+            from qgis.core import Qgis, QgsMessageLog
+
+            QgsMessageLog.logMessage(
+                f"push_event dropped (no active bridge): {payload!r}",
+                "TerraScope",
+                Qgis.MessageLevel.Warning,
+            )
+        except Exception:  # noqa: BLE001
+            pass  # headless tests / no QGIS — keep silent
         return
     _active_bridge.push_event(payload)
 
