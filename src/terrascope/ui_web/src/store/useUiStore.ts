@@ -7,7 +7,15 @@ import { create } from "zustand";
  * navigation lives here.  Long-term project state lives Python-side in
  * `ProjectState` (terrascope.json).
  */
-export type View = "welcome" | "catalog" | "classify" | "timeseries" | "sam";
+export type View =
+  | "welcome"
+  | "catalog"
+  | "classify"
+  | "accuracy"
+  | "timeseries"
+  | "sam"
+  | "foundation"
+  | "cdse";
 
 interface ToastMessage {
   id: string;

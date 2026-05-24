@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Welcome } from "./panels/Welcome";
 import { CatalogSearch } from "./panels/CatalogSearch";
 import { Classify } from "./panels/Classify";
+import { Accuracy } from "./panels/Accuracy";
 import { CommandPalette } from "./panels/CommandPalette";
 import { TelemetryConsent } from "./panels/TelemetryConsent";
 import { useHotkey } from "./hooks/useHotkey";
@@ -27,8 +28,19 @@ export function App() {
         <h1 className="text-lg font-semibold tracking-tight">TerraScope</h1>
         <span className="text-fg-muted text-xs">Classify Earth, gracefully.</span>
 
-        <nav className="ml-6 flex gap-1 text-xs">
-          {(["welcome", "catalog", "classify", "timeseries", "sam"] as const).map((v) => (
+        <nav className="ml-6 flex gap-1 text-xs flex-wrap">
+          {(
+            [
+              "welcome",
+              "catalog",
+              "classify",
+              "accuracy",
+              "timeseries",
+              "sam",
+              "foundation",
+              "cdse",
+            ] as const
+          ).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -54,6 +66,7 @@ export function App() {
         {view === "welcome" && <Welcome />}
         {view === "catalog" && <CatalogSearch />}
         {view === "classify" && <Classify />}
+        {view === "accuracy" && <Accuracy />}
         {view === "timeseries" && (
           <PointerToMenu
             name="Time-series + change detection"
@@ -66,6 +79,20 @@ export function App() {
             name="SAM segmentation"
             menuPath="Raster → TerraScope → Segment with SAM…"
             description="Segment features using SAM 2 / SAM 3 with text or point prompts. The dialog opens from the main QGIS menu."
+          />
+        )}
+        {view === "foundation" && (
+          <PointerToMenu
+            name="Fine-tune foundation model"
+            menuPath="Raster → TerraScope → Fine-tune foundation model…"
+            description="Fine-tune Prithvi / Clay / TerraMind on user-supplied scene + mask pairs, export to ONNX. Heavy — GPU recommended. The dialog opens from the main QGIS menu."
+          />
+        )}
+        {view === "cdse" && (
+          <PointerToMenu
+            name="Sign in to CDSE"
+            menuPath="Raster → TerraScope → Sign in to CDSE…"
+            description="Authenticate with Copernicus Data Space via OAuth device-code flow. Required for CDSE downloads."
           />
         )}
       </main>

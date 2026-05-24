@@ -28,6 +28,7 @@ class Controllers:
         self._register()
 
     def _register(self) -> None:
+        from . import accuracy as _accuracy
         from . import canvas as _canvas
         from . import catalog as _catalog
         from . import classify as _classify
@@ -55,6 +56,7 @@ class Controllers:
         # Workflow runners — start a QgsTask and return {job_id}, then stream
         # progress via bridge.push_event.
         self._handlers["classify.run"] = _classify.run
+        self._handlers["accuracy.run"] = _accuracy.run
 
     def dispatch(self, action: str, payload: dict[str, Any]) -> CommandResult:
         handler = self._handlers.get(action)
