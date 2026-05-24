@@ -57,7 +57,9 @@ export function Welcome() {
     <section className="max-w-3xl mx-auto">
       <h2 className="text-xl font-semibold mb-1">Welcome to TerraScope</h2>
       <p className="text-fg-muted mb-6 text-sm">
-        Phase 0 prototype{version ? ` — v${version}` : ""}. Pick a starting point.
+        {version ? `v${version} — ` : ""}pick a starting point, or use{" "}
+        <kbd className="px-1 py-0.5 bg-bg-1 rounded text-xs">Ctrl K</kbd> to
+        jump straight to any workflow.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -74,8 +76,16 @@ export function Welcome() {
       </div>
 
       <p className="text-fg-muted text-xs mt-8">
-        Coming from SCP? Open the command palette (Ctrl K) and search for
-        &quot;SCP equivalent&quot; to find the matching TerraScope action.
+        Coming from SCP?{" "}
+        <a
+          href="https://github.com/Arnedeklerk/terrascope/blob/main/docs/scp_migration.md"
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:underline"
+        >
+          See the one-page cheat sheet ↗
+        </a>{" "}
+        that maps every SCP feature to its TerraScope equivalent.
       </p>
     </section>
   );

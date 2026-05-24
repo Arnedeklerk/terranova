@@ -1,21 +1,51 @@
 import { useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { invoke } from "../bridge";
+import { useUiStore, type View } from "../store/useUiStore";
+
+/**
+ * Cmd-K command palette.
+ *
+ * Two command shapes:
+ *   - `view`   navigates the dock to the given tab
+ *   - `action` dispatches a single bridge action (used for the smoke test)
+ *
+ * Anything more complex than "go there" belongs inside the destination panel,
+ * not as a one-shot command — that's why this list is short.
+ */
 
 interface Command {
   id: string;
   title: string;
-  action: string;
   hint?: string;
+  view?: View;
+  action?: string;
 }
 
 const COMMANDS: Command[] = [
-  { id: "catalog.open", title: "Open catalogue search", action: "catalog.open" },
-  { id: "classify.start", title: "Start a classification", action: "classify.start" },
-  { id: "ndvi.run", title: "Compute NDVI on the active raster", action: "ndvi.run" },
-  { id: "timeseries.start", title: "Build a time-series cube", action: "timeseries.start" },
-  { id: "sam.start", title: "Segment with SAM 3", action: "sam.start" },
+  // Navigation
+  { id: "go.catalog", title: "Catalogue search", view: "catalog", hint: "go to" },
+  { id: "go.classify", title: "Classify scene", view: "classify", hint: "go to" },
+  { id: "go.accuracy", title: "Accuracy report", view: "accuracy", hint: "go to" },
+  {
+    id: "go.timeseries",
+    title: "Time-series + change detection",
+    view: "timeseries",
+    hint: "go to",
+  },
+  { id: "go.sam", title: "Segment with SAM", view: "sam", hint: "go to" },
+  {
+    id: "go.foundation",
+    title: "Fine-tune foundation model",
+    view: "foundation",
+    hint: "go to",
+  },
+  { id: "go.cdse", title: "Sign in to CDSE", view: "cdse", hint: "go to" },
+  { id: "go.welcome", title: "Welcome", view: "welcome", hint: "go to" },
+
+  // Diagnostics
   { id: "app.ping", title: "Bridge: ping", action: "app.ping", hint: "smoke test" },
+  { id: "app.version", title: "Show plugin version", action: "app.version", hint: "diagnostic" },
 ];
 
 interface Props {
@@ -25,6 +55,8 @@ interface Props {
 
 export function CommandPalette({ open, onOpenChange }: Props) {
   const [q, setQ] = useState("");
+  const setView = useUiStore((s) => s.setView);
+
   const filtered = useMemo(() => {
     const needle = q.toLowerCase().trim();
     if (!needle) return COMMANDS;
@@ -32,7 +64,16 @@ export function CommandPalette({ open, onOpenChange }: Props) {
   }, [q]);
 
   const run = (cmd: Command) => {
-    invoke(cmd.action).catch(console.error);
+    if (cmd.view) {
+      setView(cmd.view);
+    } else if (cmd.action) {
+      invoke(cmd.action)
+        .then((r) => {
+          // Surface bridge replies in the browser console so smoke tests are visible.
+          console.log("[palette]", cmd.action, r);
+        })
+        .catch(console.error);
+    }
     onOpenChange(false);
     setQ("");
   };

@@ -467,43 +467,37 @@ class CatalogSearchDialog(QDialog):
         if not out_path:
             return
 
+        # Route through the controller so the work runs on a QgsTask — keeps
+        # the dialog responsive on slow connections.  Status surfaces in
+        # the QGIS Log Messages → TerraScope tab plus a small status label.
+        from ...controllers import catalog as catalog_controller
+
+        west, south, east, north = self._bbox()
         try:
-            self._download_item(item, Path(out_path))
-        except Exception as exc:
-            QMessageBox.critical(self, "Download failed", f"{type(exc).__name__}: {exc}")
+            catalog_controller.download(
+                {
+                    "endpoint": self.endpoint_combo.currentData(),
+                    "collection": self.collection_combo.currentData(),
+                    "item_id": item["id"],
+                    "bbox": {
+                        "west": west,
+                        "south": south,
+                        "east": east,
+                        "north": north,
+                    },
+                    "out_path": out_path,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(
+                self, "Download failed to start", f"{type(exc).__name__}: {exc}"
+            )
             return
-
-        layer = QgsRasterLayer(out_path, Path(out_path).stem)
-        if layer.isValid():
-            QgsProject.instance().addMapLayer(layer)
-            self.iface.messageBar().pushSuccess("TerraScope", f"Added {Path(out_path).name}")
-        else:
-            QMessageBox.warning(self, "Layer invalid", "QGIS could not open the written raster.")
-
-    def _download_item(self, item_summary: dict[str, Any], out_path: Path) -> None:
-        """Re-search for the single item (so we have a real pystac Item), then materialise it."""
-        import odc.stac
-
-        from ...core.catalog import stac as catalog_stac
-        from ...core.models import STACEndpoint
-
-        endpoint = STACEndpoint(self.endpoint_combo.currentData())
-        if endpoint is STACEndpoint.PLANETARY_COMPUTER:
-            client = catalog_stac.open_planetary_computer()
-        elif endpoint is STACEndpoint.EARTH_SEARCH:
-            client = catalog_stac.open_earth_search()
-        else:
-            client = catalog_stac.open_cdse()
-
-        results = client.search(ids=[item_summary["id"]], max_items=1).item_collection()
-        items = list(results)
-        if not items:
-            raise RuntimeError(f"could not refetch item {item_summary['id']!r}")
-
-        bands = ("red", "green", "blue", "nir")
-        cube = odc.stac.load(items, bands=list(bands), resolution=10).isel(time=0)
-        cube = cube.rio.clip_box(*self._bbox(), crs="EPSG:4326")
-        cube.rio.to_raster(str(out_path), compress="deflate", tiled=True)
+        self.iface.messageBar().pushInfo(
+            "TerraScope",
+            f"Downloading {item['id']} in the background — "
+            "see Log Messages → TerraScope for progress.",
+        )
 
 
 # --------------------------------------------------------------------------- #
