@@ -73,14 +73,50 @@ export function CatalogSearch() {
   const [batchOutDir, setBatchOutDir] = useState<string | null>(null);
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
 
-  // Clean up the map preview + any active AOI picker when the panel
-  // unmounts (user navigates away).
+  // Clean up the map preview + AOI overlay + any active AOI picker when
+  // the panel unmounts (user navigates away).
   useEffect(() => {
     return () => {
       void invoke("catalog.clear_preview");
+      void invoke("catalog.clear_aoi");
       void invoke("catalog.pick_aoi.stop");
     };
   }, []);
+
+  // Push the AOI rectangle to the QGIS canvas whenever the corner fields
+  // change — debounced so typing doesn't spam the bridge.  The overlay
+  // is styled (orange dashed) distinctly from the footprint preview
+  // (cyan solid) so the user can compare them at a glance.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      let bbox;
+      try {
+        bbox = currentBbox();
+      } catch {
+        return;
+      }
+      // Only push when we have four finite, non-inverted values — partial
+      // input would draw a degenerate rectangle the user didn't ask for.
+      if (
+        !Number.isFinite(bbox.west) ||
+        !Number.isFinite(bbox.south) ||
+        !Number.isFinite(bbox.east) ||
+        !Number.isFinite(bbox.north) ||
+        bbox.east <= bbox.west ||
+        bbox.north <= bbox.south
+      ) {
+        return;
+      }
+      void invoke("catalog.show_aoi", {
+        bbox: [bbox.west, bbox.south, bbox.east, bbox.north],
+      });
+    }, 350);
+    return () => clearTimeout(t);
+    // The four corner fields drive this; intentionally NOT format —
+    // switching DD↔DMS just reformats the same numbers, the box on the
+    // map shouldn't blink.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nw.lat, nw.lon, se.lat, se.lon, nwDms.lat, nwDms.lon, seDms.lat, seDms.lon]);
 
   // Listen for the "user finished drawing the AOI rectangle" event the
   // canvas-side tool emits when they release the mouse.

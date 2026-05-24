@@ -23,11 +23,12 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:  # pragma: no cover
     pass
 
-# Module-level handle to the currently-displayed preview layer so we can
-# replace it on every preview-footprint call and remove it on clear.
-# QgsProject would otherwise accumulate dozens of stale "preview" layers
-# as the user clicks through search results.
-_preview_layer_id: str | None = None
+# Module-level handles to the currently-displayed overlay layers.  Keeping
+# IDs at module scope (rather than per-bridge) means we always replace
+# stale layers instead of accumulating them in the layer panel as users
+# click through different items / re-pick AOIs.
+_preview_layer_id: str | None = None  # scene footprint, cyan
+_aoi_layer_id: str | None = None      # user AOI, orange dashed
 
 
 def bbox(_payload: dict[str, Any]) -> dict[str, Any]:
@@ -195,7 +196,7 @@ def preview_footprint(payload: dict[str, Any]) -> dict[str, Any]:
 
     # Style: cyan-blue outline, no fill, 2px line.  Visible on both light
     # and dark basemaps; won't obscure the imagery underneath.
-    _style_preview(layer)
+    _style_outline(layer, rgb=(64, 196, 255), dashed=False, width=0.6)
 
     QgsProject.instance().addMapLayer(layer)
     _preview_layer_id = layer.id()
@@ -210,6 +211,87 @@ def clear_preview(_payload: dict[str, Any]) -> dict[str, Any]:
     """Remove the current preview overlay, if any."""
     removed = _remove_preview_layer()
     return {"removed": removed}
+
+
+# --------------------------------------------------------------------------- #
+# Persistent AOI overlay                                                      #
+# --------------------------------------------------------------------------- #
+def show_aoi(payload: dict[str, Any]) -> dict[str, Any]:
+    """Draw the user's current AOI as a persistent overlay on the canvas.
+
+    Payload: ``{bbox: [west, south, east, north]}`` in WGS84.
+
+    Styled distinctly from the scene-footprint preview (orange dashed,
+    no fill) so users can see at a glance whether their search AOI and
+    the scene they're about to download actually overlap.  Replaces any
+    previous AOI layer.
+    """
+    from qgis.core import (
+        QgsFeature,
+        QgsGeometry,
+        QgsProject,
+        QgsVectorLayer,
+    )
+
+    global _aoi_layer_id
+
+    bbox_xy = payload.get("bbox")
+    if not bbox_xy or len(bbox_xy) != 4:
+        raise ValueError("show_aoi needs bbox=[west, south, east, north]")
+    west, south, east, north = (float(v) for v in bbox_xy)
+    if not (west < east and south < north):
+        # Don't silently draw a degenerate / inverted rectangle — the
+        # caller almost certainly has a UI bug or the user is still
+        # typing.  Caller should debounce.
+        raise ValueError(
+            f"AOI bbox is degenerate or inverted: "
+            f"west={west}, south={south}, east={east}, north={north}"
+        )
+
+    qgs_geom = QgsGeometry.fromWkt(
+        f"POLYGON(({west} {south}, {east} {south}, "
+        f"{east} {north}, {west} {north}, {west} {south}))"
+    )
+
+    _remove_aoi_layer()
+    layer = QgsVectorLayer(
+        "Polygon?crs=EPSG:4326", "TerraScope AOI", "memory"
+    )
+    layer.setCustomProperty("terrascope.aoi", "1")
+    provider = layer.dataProvider()
+    feat = QgsFeature()
+    feat.setGeometry(qgs_geom)
+    provider.addFeatures([feat])
+    layer.updateExtents()
+
+    # Orange dashed outline, no fill — clearly different from the
+    # footprint preview's cyan solid line so the two overlays don't
+    # get visually confused.
+    _style_outline(layer, rgb=(255, 158, 47), dashed=True, width=0.8)
+
+    QgsProject.instance().addMapLayer(layer)
+    _aoi_layer_id = layer.id()
+    return {"layer_id": layer.id()}
+
+
+def clear_aoi(_payload: dict[str, Any]) -> dict[str, Any]:
+    """Remove the AOI overlay layer, if any."""
+    removed = _remove_aoi_layer()
+    return {"removed": removed}
+
+
+def _remove_aoi_layer() -> bool:
+    from qgis.core import QgsProject
+
+    global _aoi_layer_id
+    if _aoi_layer_id is None:
+        return False
+    try:
+        QgsProject.instance().removeMapLayer(_aoi_layer_id)
+    except Exception:  # noqa: BLE001
+        pass
+    _aoi_layer_id = None
+    return True
 
 
 # --------------------------------------------------------------------------- #
@@ -386,8 +468,19 @@ def _remove_preview_layer() -> bool:
     return True
 
 
-def _style_preview(layer: Any) -> None:
-    """Cyan-blue outline, no fill — visible on any basemap."""
+def _style_outline(
+    layer: Any,
+    *,
+    rgb: tuple[int, int, int],
+    dashed: bool = False,
+    width: float = 0.6,
+) -> None:
+    """Apply a transparent-fill / coloured-outline symbol to ``layer``.
+
+    Used by both the scene-footprint preview (cyan solid) and the AOI
+    overlay (orange dashed).  Falls back gracefully on older bindings
+    that lack QgsSingleSymbolRenderer.
+    """
     from qgis.core import QgsSimpleFillSymbolLayer, QgsSymbol
     from qgis.PyQt.QtCore import Qt
     from qgis.PyQt.QtGui import QColor
@@ -397,12 +490,17 @@ def _style_preview(layer: Any) -> None:
         symbol.deleteSymbolLayer(0)
     fill = QgsSimpleFillSymbolLayer()
     fill.setColor(QColor(0, 0, 0, 0))  # transparent fill
-    fill.setStrokeColor(QColor(64, 196, 255))  # cyan-blue
-    fill.setStrokeWidth(0.6)
+    fill.setStrokeColor(QColor(*rgb))
+    fill.setStrokeWidth(float(width))
+    pen_style = Qt.DashLine if dashed else Qt.SolidLine
     try:
-        fill.setStrokeStyle(Qt.PenStyle.SolidLine)
-    except AttributeError:  # PyQt5
-        fill.setStrokeStyle(Qt.SolidLine)
+        # PyQt6 nests the enum under PenStyle.
+        pen_style = (
+            Qt.PenStyle.DashLine if dashed else Qt.PenStyle.SolidLine
+        )
+    except AttributeError:  # PyQt5 already gave us the flat form.
+        pass
+    fill.setStrokeStyle(pen_style)
     symbol.appendSymbolLayer(fill)
     try:
         from qgis.core import QgsSingleSymbolRenderer
