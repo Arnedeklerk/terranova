@@ -28,6 +28,7 @@ class Controllers:
         self._register()
 
     def _register(self) -> None:
+        from . import canvas as _canvas
         from . import catalog as _catalog
 
         self._handlers["app.ping"] = self._ping
@@ -36,6 +37,7 @@ class Controllers:
         self._handlers["app.telemetry.set"] = self._telemetry_set
         self._handlers["app.telemetry.inspect"] = self._telemetry_inspect
         self._handlers["catalog.search"] = _catalog.search
+        self._handlers["canvas.bbox"] = _canvas.bbox
         # Future:
         # self._handlers["classify.run"] = self.classify.run
         # self._handlers["ndvi.compute"] = self.ndvi.compute
