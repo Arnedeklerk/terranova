@@ -55,8 +55,11 @@ class Controllers:
 
         # Workflow runners — start a QgsTask and return {job_id}, then stream
         # progress via bridge.push_event.
+        from . import timeseries as _timeseries
+
         self._handlers["classify.run"] = _classify.run
         self._handlers["accuracy.run"] = _accuracy.run
+        self._handlers["timeseries.run"] = _timeseries.run
 
     def dispatch(self, action: str, payload: dict[str, Any]) -> CommandResult:
         handler = self._handlers.get(action)

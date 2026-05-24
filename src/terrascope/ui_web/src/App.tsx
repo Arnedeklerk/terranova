@@ -3,6 +3,7 @@ import { Welcome } from "./panels/Welcome";
 import { CatalogSearch } from "./panels/CatalogSearch";
 import { Classify } from "./panels/Classify";
 import { Accuracy } from "./panels/Accuracy";
+import { TimeSeries } from "./panels/TimeSeries";
 import { CommandPalette } from "./panels/CommandPalette";
 import { TelemetryConsent } from "./panels/TelemetryConsent";
 import { useHotkey } from "./hooks/useHotkey";
@@ -67,13 +68,7 @@ export function App() {
         {view === "catalog" && <CatalogSearch />}
         {view === "classify" && <Classify />}
         {view === "accuracy" && <Accuracy />}
-        {view === "timeseries" && (
-          <PointerToMenu
-            name="Time-series + change detection"
-            menuPath="Raster → TerraScope → Time-series + change detection…"
-            description="Build a Zarr cube from a STAC search, compute NDVI / NBR / NDMI, run CuSum / BFAST / LandTrendr per pixel, write break rasters and an MP4 animation. The dialog opens from the main QGIS menu."
-          />
-        )}
+        {view === "timeseries" && <TimeSeries />}
         {view === "sam" && (
           <PointerToMenu
             name="SAM segmentation"
