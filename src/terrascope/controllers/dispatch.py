@@ -30,18 +30,31 @@ class Controllers:
     def _register(self) -> None:
         from . import canvas as _canvas
         from . import catalog as _catalog
+        from . import classify as _classify
+        from . import dialogs as _dialogs
+        from . import layers as _layers
 
         self._handlers["app.ping"] = self._ping
         self._handlers["app.version"] = self._version
         self._handlers["app.telemetry.status"] = self._telemetry_status
         self._handlers["app.telemetry.set"] = self._telemetry_set
         self._handlers["app.telemetry.inspect"] = self._telemetry_inspect
+
+        # Catalogue + canvas (Phase 1).
         self._handlers["catalog.search"] = _catalog.search
         self._handlers["canvas.bbox"] = _canvas.bbox
-        # Future:
-        # self._handlers["classify.run"] = self.classify.run
-        # self._handlers["ndvi.compute"] = self.ndvi.compute
-        # ...
+
+        # Layer + dialog helpers (used by every panel that picks a layer or path).
+        self._handlers["layers.list_rasters"] = _layers.list_rasters
+        self._handlers["layers.list_vectors"] = _layers.list_vectors
+        self._handlers["layers.fields"] = _layers.fields
+        self._handlers["dialog.save_file"] = _dialogs.save_file
+        self._handlers["dialog.open_file"] = _dialogs.open_file
+        self._handlers["dialog.open_directory"] = _dialogs.open_directory
+
+        # Workflow runners — start a QgsTask and return {job_id}, then stream
+        # progress via bridge.push_event.
+        self._handlers["classify.run"] = _classify.run
 
     def dispatch(self, action: str, payload: dict[str, Any]) -> CommandResult:
         handler = self._handlers.get(action)

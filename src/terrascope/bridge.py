@@ -5,11 +5,15 @@ Sits between :class:`QWebEngineView` (web tier) and :class:`Controllers`
 
 - ``invoke(action, payload)`` — sync request/response (returns JSON string)
 - ``event`` (signal) — Python pushes events the web tier subscribes to
+
+For long-running operations, controllers return a ``{job_id: ...}`` from a
+sync ``invoke`` and stream progress via :func:`push_event` from a QgsTask.
+The React side filters events by ``job_id``.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 
@@ -18,6 +22,26 @@ from .core.models import CommandMessage, CommandResult
 
 if TYPE_CHECKING:  # pragma: no cover
     pass
+
+# Module-level handle to the currently-active bridge so worker code
+# (QgsTask subclasses, controllers) can emit events without holding a
+# direct reference to the Bridge instance.  Set in __init__; cleared on
+# delete.  Multi-bridge scenarios aren't supported (and don't exist in
+# QGIS — one plugin, one dock).
+_active_bridge: "Bridge | None" = None
+
+
+def push_event(payload: dict[str, Any]) -> None:
+    """Emit an event to the web tier from anywhere in the Python codebase.
+
+    Safe to call from the GUI thread.  Qt queues signal emissions across
+    threads, so calling from a QgsTask worker is also safe — the React side
+    receives the event on its event loop.  No-op if no bridge is active
+    (e.g. when imported outside QGIS for tests).
+    """
+    if _active_bridge is None:
+        return
+    _active_bridge.push_event(payload)
 
 
 class Bridge(QObject):
@@ -28,6 +52,13 @@ class Bridge(QObject):
     def __init__(self, controllers: Controllers | None = None) -> None:
         super().__init__()
         self.controllers = controllers or Controllers()
+        global _active_bridge
+        _active_bridge = self
+
+    def __del__(self) -> None:  # pragma: no cover
+        global _active_bridge
+        if _active_bridge is self:
+            _active_bridge = None
 
     @pyqtSlot(str, result=str)
     def invoke(self, raw: str) -> str:
@@ -44,7 +75,7 @@ class Bridge(QObject):
         result = self.controllers.dispatch(msg.action, msg.payload)
         return result.model_dump_json()
 
-    def push_event(self, payload: dict) -> None:
+    def push_event(self, payload: dict[str, Any]) -> None:
         """Send an event to the web tier.  Safe to call from the GUI thread."""
         import json
 

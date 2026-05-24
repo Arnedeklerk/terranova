@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Welcome } from "./panels/Welcome";
 import { CatalogSearch } from "./panels/CatalogSearch";
+import { Classify } from "./panels/Classify";
 import { CommandPalette } from "./panels/CommandPalette";
 import { TelemetryConsent } from "./panels/TelemetryConsent";
 import { useHotkey } from "./hooks/useHotkey";
@@ -52,13 +53,7 @@ export function App() {
       <main className="flex-1 p-6 overflow-auto">
         {view === "welcome" && <Welcome />}
         {view === "catalog" && <CatalogSearch />}
-        {view === "classify" && (
-          <PointerToMenu
-            name="Classification"
-            menuPath="Raster → TerraScope → Classify scene…"
-            description="Train a Random Forest / LightGBM / XGBoost classifier on labelled polygons and apply it to a raster. The dialog opens from the main QGIS menu — this dock tab is a placeholder for the in-dock version coming in a later phase."
-          />
-        )}
+        {view === "classify" && <Classify />}
         {view === "timeseries" && (
           <PointerToMenu
             name="Time-series + change detection"
