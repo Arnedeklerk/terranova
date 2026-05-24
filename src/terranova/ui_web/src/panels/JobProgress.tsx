@@ -43,6 +43,24 @@ export function JobProgress({ jobId, onComplete, onFailed }: JobProgressProps) {
   const [done, setDone] = useState<"running" | "ok" | "fail">("running");
   const [stalled, setStalled] = useState(false);
   const stallTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirrors `done` so the setTimeout callback (defined inside an effect
+  // that captures a stale closure) can read the current value without
+  // re-creating the closure on every state change.
+  const doneRef = useRef(done);
+  doneRef.current = done;
+
+  // Hold the latest callbacks in refs so the subscription effect can use
+  // them without re-running every parent render.  If we put them in the
+  // useEffect dep list directly, inline `() => ...` arrows from the
+  // parent change identity on every render — the effect tears down and
+  // re-subscribes, which RESETS percent to 0 and re-arms the stall
+  // watchdog from scratch.  Reproduces as "0% — Starting…" + a false
+  // 90-s stall warning showing up on a job that already finished
+  // successfully.
+  const onCompleteRef = useRef(onComplete);
+  const onFailedRef = useRef(onFailed);
+  onCompleteRef.current = onComplete;
+  onFailedRef.current = onFailed;
 
   useEffect(() => {
     if (!jobId) return;
@@ -51,9 +69,12 @@ export function JobProgress({ jobId, onComplete, onFailed }: JobProgressProps) {
     setDone("running");
     setStalled(false);
 
-    // Stall watchdog: if no progress event in 15s, warn the user.
     if (stallTimer.current) clearTimeout(stallTimer.current);
-    stallTimer.current = setTimeout(() => setStalled(true), STALL_WARN_MS);
+    stallTimer.current = setTimeout(() => {
+      // Don't flip stalled if the task already finished between the
+      // setTimeout firing and its callback running.
+      if (doneRef.current === "running") setStalled(true);
+    }, STALL_WARN_MS);
 
     const unsubscribe = onEvent((payload) => {
       const e = payload as TaskEvent;
@@ -67,16 +88,32 @@ export function JobProgress({ jobId, onComplete, onFailed }: JobProgressProps) {
         if (typeof e.percent === "number") setPercent(e.percent);
         if (e.status) setStatus(e.status);
         // Re-arm watchdog after every progress emit.
-        stallTimer.current = setTimeout(() => setStalled(true), STALL_WARN_MS);
+        stallTimer.current = setTimeout(() => {
+      // Don't flip stalled if the task already finished between the
+      // setTimeout firing and its callback running.
+      if (doneRef.current === "running") setStalled(true);
+    }, STALL_WARN_MS);
       } else if (e.type === "task.complete") {
         setPercent(100);
         setDone("ok");
         setStatus("Done.");
-        onComplete?.(e.result);
+        // Important: once the task is done, stop the watchdog.  Without
+        // this clear, the timer set on the last progress event keeps
+        // ticking and fires "stalled" after 90s on a job that finished
+        // 89s ago.
+        if (stallTimer.current) {
+          clearTimeout(stallTimer.current);
+          stallTimer.current = null;
+        }
+        onCompleteRef.current?.(e.result);
       } else if (e.type === "task.failed") {
         setDone("fail");
         setStatus(e.error ?? "Failed.");
-        onFailed?.(e.error ?? "Failed.");
+        if (stallTimer.current) {
+          clearTimeout(stallTimer.current);
+          stallTimer.current = null;
+        }
+        onFailedRef.current?.(e.error ?? "Failed.");
       }
     });
 
@@ -84,7 +121,9 @@ export function JobProgress({ jobId, onComplete, onFailed }: JobProgressProps) {
       unsubscribe();
       if (stallTimer.current) clearTimeout(stallTimer.current);
     };
-  }, [jobId, onComplete, onFailed]);
+    // Intentionally only `jobId` — see the onCompleteRef comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId]);
 
   if (!jobId) return null;
   return (
