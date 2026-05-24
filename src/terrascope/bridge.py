@@ -73,7 +73,19 @@ class Bridge(QObject):
         self.controllers = controllers or Controllers()
         # Cross-thread marshalling: connect with QueuedConnection so emits
         # from worker threads (QgsTask.run) are queued for the main thread.
-        self._internal.connect(self._on_internal, Qt.QueuedConnection)
+        # PyQt6 nests the enum under ConnectionType; fall back to the PyQt5
+        # flat form for older Qt builds.
+        queued = getattr(
+            getattr(Qt, "ConnectionType", Qt),
+            "QueuedConnection",
+            None,
+        )
+        if queued is None:
+            # Last-ditch: skip the explicit type, rely on AutoConnection
+            # which still becomes Queued across threads in practice.
+            self._internal.connect(self._on_internal)
+        else:
+            self._internal.connect(self._on_internal, queued)
         # Forward QGIS log messages to the web tier as qgis.log events.
         self._wire_qgis_log()
 
