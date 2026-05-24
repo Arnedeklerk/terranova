@@ -4,6 +4,7 @@ import { CatalogSearch } from "./panels/CatalogSearch";
 import { Classify } from "./panels/Classify";
 import { Accuracy } from "./panels/Accuracy";
 import { TimeSeries } from "./panels/TimeSeries";
+import { Cdse } from "./panels/Cdse";
 import { CommandPalette } from "./panels/CommandPalette";
 import { TelemetryConsent } from "./panels/TelemetryConsent";
 import { useHotkey } from "./hooks/useHotkey";
@@ -83,13 +84,7 @@ export function App() {
             description="Fine-tune Prithvi / Clay / TerraMind on user-supplied scene + mask pairs, export to ONNX. Heavy — GPU recommended. The dialog opens from the main QGIS menu."
           />
         )}
-        {view === "cdse" && (
-          <PointerToMenu
-            name="Sign in to CDSE"
-            menuPath="Raster → TerraScope → Sign in to CDSE…"
-            description="Authenticate with Copernicus Data Space via OAuth device-code flow. Required for CDSE downloads."
-          />
-        )}
+        {view === "cdse" && <Cdse />}
       </main>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
