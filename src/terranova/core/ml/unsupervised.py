@@ -23,10 +23,18 @@ without QGIS installed.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Callable, Literal
 
 import numpy as np
+
+# Pin loky/joblib's thread budget to the logical CPU count BEFORE sklearn
+# loads.  Without this, on Windows joblib tries to call wmic.exe to count
+# physical cores (vs hyperthreaded logical) and emits a UserWarning when
+# wmic isn't on PATH — which is the default on QGIS's bundled Python.
+# Same result, less noise in the QGIS Log Messages panel.
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 1))
 
 UnsupervisedKind = Literal["kmeans", "isodata"]
 
