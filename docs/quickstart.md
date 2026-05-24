@@ -5,14 +5,14 @@
 Once published to plugins.qgis.org:
 
 1. **Plugins → Manage and Install Plugins → All**
-2. Search for **TerraScope**, click **Install Plugin**
+2. Search for **Terranova**, click **Install Plugin**
 3. Toggle the toolbar icon to open the dock
 
 ## Developer install
 
 ```bash
-git clone https://github.com/terrascope-rs/terrascope
-cd terrascope
+git clone https://github.com/terranova-rs/terranova
+cd terranova
 
 # Python deps via uv
 uv sync --all-extras --dev
@@ -31,11 +31,11 @@ On Windows substitute `make` with `nmake` or run the Makefile via Git Bash.
 After installing:
 
 1. Open a multi-band raster (a Sentinel-2 L2A scene is fine).
-2. **Processing Toolbox → TerraScope → Indices → Compute NDVI**.
+2. **Processing Toolbox → Terranova → Indices → Compute NDVI**.
 3. Pick red and NIR bands; run.
 4. The output GeoTIFF should appear as a new layer with NDVI values in `[-1, 1]`.
 
-The TerraScope dock will show the welcome screen rendered in an embedded React panel. Press `Ctrl K` (or `Cmd K` on macOS) to open the command palette.
+The Terranova dock will show the welcome screen rendered in an embedded React panel. Press `Ctrl K` (or `Cmd K` on macOS) to open the command palette.
 
 ## Optional dependencies
 

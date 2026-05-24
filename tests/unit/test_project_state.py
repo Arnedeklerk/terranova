@@ -6,18 +6,18 @@ from datetime import datetime
 
 import pytest
 
-from terrascope.core.models import (
+from terranova.core.models import (
     BBox,
     CatalogSearch,
     DateRange,
 )
-from terrascope.core.project.state import ProjectState
+from terranova.core.project.state import ProjectState
 
 pytestmark = pytest.mark.unit
 
 
 def test_round_trip_empty(tmp_path) -> None:  # type: ignore[no-untyped-def]
-    p = tmp_path / "terrascope.json"
+    p = tmp_path / "terranova.json"
     state = ProjectState()
     state.save(p)
     loaded = ProjectState.load(p)
@@ -35,7 +35,7 @@ def test_record_appends_to_ledger() -> None:
 
 
 def test_round_trip_with_search(tmp_path) -> None:  # type: ignore[no-untyped-def]
-    p = tmp_path / "terrascope.json"
+    p = tmp_path / "terranova.json"
     state = ProjectState(
         last_search=CatalogSearch(
             bbox=BBox(west=0, south=0, east=1, north=1),
@@ -59,9 +59,9 @@ def test_future_schema_raises(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """Loading a file from a future plugin version must NOT silently work."""
     import json
 
-    from terrascope.core.project.state import ProjectStateMigrationError
+    from terranova.core.project.state import ProjectStateMigrationError
 
-    p = tmp_path / "terrascope.json"
+    p = tmp_path / "terranova.json"
     p.write_text(json.dumps({"schema_version": 99}), encoding="utf-8")
     with pytest.raises(ProjectStateMigrationError):
         ProjectState.load(p)

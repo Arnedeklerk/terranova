@@ -8,8 +8,8 @@ import pytest
 reportlab = pytest.importorskip("reportlab")
 matplotlib = pytest.importorskip("matplotlib")
 
-from terrascope.core.accuracy.metrics import AccuracyReport  # noqa: E402
-from terrascope.core.accuracy.report import render_pdf  # noqa: E402
+from terranova.core.accuracy.metrics import AccuracyReport  # noqa: E402
+from terranova.core.accuracy.report import render_pdf  # noqa: E402
 
 pytestmark = pytest.mark.unit
 

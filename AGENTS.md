@@ -1,11 +1,11 @@
-# AGENTS.md — instructions for AI coding agents working on TerraScope
+# AGENTS.md — instructions for AI coding agents working on Terranova
 
 This document is the source-of-truth for agents (Claude Code, Aider, etc.)
 modifying this repo. Humans should also read it before contributing.
 
 ## Hard rules
 
-1. **The domain layer is pure Python.**  Files under `src/terrascope/core/**`
+1. **The domain layer is pure Python.**  Files under `src/terranova/core/**`
    MUST NOT import from `qgis.*` or `PyQt*`.  Tests in `tests/unit/` must
    pass without any QGIS install.
 2. **Long-running work runs on `QgsTask`.**  Never block the GUI thread.
@@ -19,10 +19,10 @@ modifying this repo. Humans should also read it before contributing.
 5. **No emojis in source or docs.**  Match the project's terse technical
    tone.
 6. **Colour ramps default to `cmc.batlow` / `cmc.vik`.**  Never default
-   to jet/rainbow.  See `src/terrascope/ui/styles/tokens.yaml`.
+   to jet/rainbow.  See `src/terranova/ui/styles/tokens.yaml`.
 7. **Every workflow lives in both UI surfaces.**  The native Qt menu
-   dialogs (`src/terrascope/ui/dialogs/`) and the React dock panels
-   (`src/terrascope/ui_web/src/panels/`) must offer the same set of
+   dialogs (`src/terranova/ui/dialogs/`) and the React dock panels
+   (`src/terranova/ui_web/src/panels/`) must offer the same set of
    workflows.  The dock is the modern surface and gets the design
    effort; the Qt dialogs are the compatibility fallback for QGIS
    Standalone Windows users without QtWebEngine.  When adding a new
@@ -36,7 +36,7 @@ For any workflow that takes more than ~1 s:
 1. Controller handler validates the payload and starts a `QgsTask`
    (see `controllers/classify.py` as the reference).
 2. Handler returns ``{"job_id": "..."}`` *immediately*.
-3. The task emits progress via :func:`terrascope.bridge.push_event`:
+3. The task emits progress via :func:`terranova.bridge.push_event`:
    - ``{"type": "task.progress", "job_id": ..., "percent": 0-100, "status": "..."}``
    - ``{"type": "task.complete", "job_id": ..., "result": {...}}``
    - ``{"type": "task.failed",   "job_id": ..., "error": "..."}``
@@ -50,7 +50,7 @@ generic progress shape.
 ## Project layout
 
 ```
-src/terrascope/
+src/terranova/
   __init__.py          classFactory entry point
   plugin.py            the only file that imports qgis.* + PyQt6.*
   api.py               stable public surface for scripting
@@ -71,7 +71,7 @@ tests/
 ```bash
 make install            # uv sync --all-extras --dev
 make lint               # ruff check + format check
-make type               # mypy --strict on src/terrascope
+make type               # mypy --strict on src/terranova
 make test               # pytest -m "not gpu"
 make ui-build           # bundle the React panel to ui_web/dist
 make deploy             # symlink plugin into QGIS profile
@@ -92,7 +92,7 @@ make package            # build the .zip
 
 ## Versioning
 
-`metadata.txt`, `pyproject.toml`, and `src/terrascope/version.py` must all
+`metadata.txt`, `pyproject.toml`, and `src/terranova/version.py` must all
 match.  Bump via the release workflow, not by hand.
 
 ## Phase plan (where this work fits)

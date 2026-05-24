@@ -1,6 +1,6 @@
-# NOTICE — Third-party software used by TerraScope
+# NOTICE — Third-party software used by Terranova
 
-TerraScope is released under GPL-3-or-later (see [LICENSE](LICENSE)).  It depends on, and is grateful to, the following projects:
+Terranova is released under GPL-3-or-later (see [LICENSE](LICENSE)).  It depends on, and is grateful to, the following projects:
 
 ## Direct Python dependencies
 

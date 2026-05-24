@@ -4,7 +4,7 @@ This page assumes you have read [installation.md](installation.md) and have a wo
 
 ## Architectural rules
 
-1. **The domain layer is pure Python.**  Files under `src/terrascope/core/**` MUST NOT import from `qgis.*` or any Qt binding. Enforced by `tests/unit/test_core_purity.py`.
+1. **The domain layer is pure Python.**  Files under `src/terranova/core/**` MUST NOT import from `qgis.*` or any Qt binding. Enforced by `tests/unit/test_core_purity.py`.
 2. **Long-running work runs through `QgsTask`.**  Never block the GUI thread.
 3. **Bridge messages are Pydantic-validated.**  Add new actions in `controllers/dispatch.py`.
 4. **Telemetry stays at six fields.**  Adding a field is a privacy-policy change and a public PR — `tests/unit/test_telemetry.py::test_payload_contains_only_documented_fields` enforces.
@@ -13,7 +13,7 @@ This page assumes you have read [installation.md](installation.md) and have a wo
 ## Layout cheat sheet
 
 ```
-src/terrascope/
+src/terranova/
   __init__.py          classFactory entry point
   plugin.py            the only file that imports qgis.* / PyQt*
   api.py               stable public scripting surface
@@ -53,7 +53,7 @@ scripts/               release helpers, sample fetchers
 ```bash
 make install          # uv sync --all-extras --dev
 make lint             # ruff check + format check
-make type             # mypy --strict on src/terrascope
+make type             # mypy --strict on src/terranova
 make test             # pytest -m "not gpu"
 make ui-build         # bundle the React panel
 make ui-dev           # Vite dev server (in-browser)
@@ -92,7 +92,7 @@ test(roi): add region_grow boundary tests
 
 ## Web tier
 
-The React panel is bundled into `src/terrascope/ui_web/dist/` and loaded by QtWebEngine via `file://`.  In dev, run `npm run dev` (or `serve.bat`/`serve.ps1`) for in-browser iteration; the bridge falls back to a stub that logs calls to the console.
+The React panel is bundled into `src/terranova/ui_web/dist/` and loaded by QtWebEngine via `file://`.  In dev, run `npm run dev` (or `serve.bat`/`serve.ps1`) for in-browser iteration; the bridge falls back to a stub that logs calls to the console.
 
 State management: Zustand for UI-only state, Python's `ProjectState` for everything that should outlive a panel.
 
@@ -107,7 +107,7 @@ State management: Zustand for UI-only state, Python's `ProjectState` for everyth
 
 ## Where to look first when something breaks
 
-- Plugin won't load — `Plugins → Plugin Manager → Show Errors`, plus the `TerraScope` tab in the Log Messages panel.
+- Plugin won't load — `Plugins → Plugin Manager → Show Errors`, plus the `Terranova` tab in the Log Messages panel.
 - Web bundle missing — run `make ui-build`.
 - `QtWebEngineView` import fails — install `python3-pyqtwebengine` (Linux only).
 - Tests pass locally but CI fails — check the matrix.  Most often a `pytest.importorskip` is missing or a Linux-only path was used.

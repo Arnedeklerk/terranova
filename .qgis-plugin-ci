@@ -1,9 +1,9 @@
 # qgis-plugin-ci configuration — used by the release workflow to package
 # and (eventually) push to plugins.qgis.org.
 
-plugin_path: src/terrascope
-github_organization_slug: terrascope-rs
-project_slug: terrascope
+plugin_path: src/terranova
+github_organization_slug: terranova-rs
+project_slug: terranova
 
 # We never want auto-generated translation pulls in this lockstep flow —
 # translations land in their own PRs.

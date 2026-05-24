@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Dump JSON Schemas for Pydantic models so the TypeScript side can codegen.
 
-Writes one ``.json`` file per top-level model into ``src/terrascope/ui_web/src/schemas/``.
+Writes one ``.json`` file per top-level model into ``src/terranova/ui_web/src/schemas/``.
 The web tier can then use a tool like ``json-schema-to-typescript`` to generate
 matching ``.d.ts`` types — keeping the Python/TS boundary in sync.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from terrascope.core.models import (  # noqa: E402
+from terranova.core.models import (  # noqa: E402
     BBox,
     CatalogSearch,
     ClassifierConfig,
@@ -26,7 +26,7 @@ from terrascope.core.models import (  # noqa: E402
     TelemetryEvent,
 )
 
-OUT_DIR = ROOT / "src" / "terrascope" / "ui_web" / "src" / "schemas"
+OUT_DIR = ROOT / "src" / "terranova" / "ui_web" / "src" / "schemas"
 
 MODELS = {
     "BBox": BBox,

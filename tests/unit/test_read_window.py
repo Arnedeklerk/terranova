@@ -7,7 +7,7 @@ import pytest
 
 rasterio = pytest.importorskip("rasterio")
 
-from terrascope.core.io import read_centred_window, read_window  # noqa: E402
+from terranova.core.io import read_centred_window, read_window  # noqa: E402
 
 pytestmark = pytest.mark.unit
 

@@ -1,6 +1,6 @@
 # Architecture
 
-TerraScope is structured as three hard-separated layers plus an infrastructure surface. The **domain layer** never imports from `qgis.*` or `PyQt*` — this is the rule that lets the core algorithms be tested headlessly, shipped as a standalone library in the future, and reused outside QGIS.
+Terranova is structured as three hard-separated layers plus an infrastructure surface. The **domain layer** never imports from `qgis.*` or `PyQt*` — this is the rule that lets the core algorithms be tested headlessly, shipped as a standalone library in the future, and reused outside QGIS.
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -12,13 +12,13 @@ TerraScope is structured as three hard-separated layers plus an infrastructure s
 │  └────────────┬───────────────┘  └──────────────┬───────────────┘  │
 │               │ signals/slots, QWebChannel      │                  │
 │  ┌────────────▼─────────────────────────────────▼───────────────┐  │
-│  │  CONTROLLER LAYER  (terrascope.controllers.*)                │  │
+│  │  CONTROLLER LAYER  (terranova.controllers.*)                │  │
 │  │  Thin adapters: input validation, QgsTask launch, layer add  │  │
 │  └────────────┬─────────────────────────────────┬───────────────┘  │
 └───────────────┼─────────────────────────────────┼──────────────────┘
                 │                                 │
 ┌───────────────▼─────────────────────────────────▼──────────────────┐
-│  DOMAIN LAYER   (terrascope.core.*)   pure Python, no qgis imports │
+│  DOMAIN LAYER   (terranova.core.*)   pure Python, no qgis imports │
 │  catalog (STAC) | stacking (xarray) | ml (sklearn/torch) |         │
 │  timeseries (bfast) | project (pydantic) | accuracy                │
 └────────────────────────────────────────────────────────────────────┘
@@ -40,7 +40,7 @@ Long-running work goes through `QgsTask.fromFunction(...)` or a `QgsTask` subcla
 3. **Task** runs pure-Python domain code on a thread pool / dask scheduler.
 4. **`finished` callback** (main thread) calls `QgsProject.instance().addMapLayer(...)`.
 
-For ML inference, one warm ONNX Runtime `InferenceSession` is kept per model in a module-level singleton (`terrascope.core.ml.inference.get_session`). ORT is thread-safe by design.
+For ML inference, one warm ONNX Runtime `InferenceSession` is kept per model in a module-level singleton (`terranova.core.ml.inference.get_session`). ORT is thread-safe by design.
 
 ## Bridge
 
@@ -53,7 +53,7 @@ Every message is validated on the Python side with Pydantic (`CommandMessage`) b
 
 ## State
 
-Project state is a Pydantic v2 model persisted as `terrascope.json` next to the `.qgz` file. It is schema-versioned (`schema_version`) so future migrations can be detected on load. Large training sets spill to SQLite (Phase 1+).
+Project state is a Pydantic v2 model persisted as `terranova.json` next to the `.qgz` file. It is schema-versioned (`schema_version`) so future migrations can be detected on load. Large training sets spill to SQLite (Phase 1+).
 
 ## Module dependency graph
 

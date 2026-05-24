@@ -1,6 +1,6 @@
 # Recipes
 
-A recipe is a YAML file that describes a one-click TerraScope workflow.  Recipes appear on the welcome screen and in the command palette.  Anything done through a recipe is also reproducible from the QGIS Python console because every step is dispatched to the same controller actions the UI uses.
+A recipe is a YAML file that describes a one-click Terranova workflow.  Recipes appear on the welcome screen and in the command palette.  Anything done through a recipe is also reproducible from the QGIS Python console because every step is dispatched to the same controller actions the UI uses.
 
 ## Schema
 
@@ -45,7 +45,7 @@ If your recipe needs more than these, prefer to build a Processing model or a Py
 
 ## Available actions
 
-The set of `action` values is the dispatch table in `terrascope.controllers.dispatch.Controllers._register`.  Phase 0 ships:
+The set of `action` values is the dispatch table in `terranova.controllers.dispatch.Controllers._register`.  Phase 0 ships:
 
 - `catalog.search` — STAC search returning items
 - `app.ping` / `app.version` — smoke tests

@@ -7,9 +7,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from terrascope.controllers import catalog as ctl
-from terrascope.controllers.dispatch import Controllers
-from terrascope.core.catalog import stac
+from terranova.controllers import catalog as ctl
+from terranova.controllers.dispatch import Controllers
+from terranova.core.catalog import stac
 
 pytestmark = pytest.mark.unit
 

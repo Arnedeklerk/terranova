@@ -1,7 +1,7 @@
-# TerraScope — developer Makefile
+# Terranova — developer Makefile
 # Targets: install, lint, type, test, ui-dev, ui-build, deploy, package, clean
 
-PLUGIN_NAME := terrascope
+PLUGIN_NAME := terranova
 SRC := src/$(PLUGIN_NAME)
 PROFILE ?= default
 # Major version of the QGIS profile directory.  QGIS 3.x uses "QGIS3";

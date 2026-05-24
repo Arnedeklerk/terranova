@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from terrascope.core.ml import inference
+from terranova.core.ml import inference
 
 pytestmark = pytest.mark.unit
 

@@ -7,7 +7,7 @@ import pytest
 
 xr = pytest.importorskip("xarray")
 
-from terrascope.core.stacking.lazy import (  # noqa: E402
+from terranova.core.stacking.lazy import (  # noqa: E402
     composite,
     temporal_clip,
 )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from terrascope.core.accuracy.metrics import assess
+from terranova.core.accuracy.metrics import assess
 
 pytestmark = pytest.mark.unit
 

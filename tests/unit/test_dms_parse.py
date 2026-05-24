@@ -25,7 +25,7 @@ def _load_helpers():  # type: ignore[no-untyped-def]
     path = (
         Path(__file__).resolve().parents[2]
         / "src"
-        / "terrascope"
+        / "terranova"
         / "ui"
         / "dialogs"
         / "catalog_search.py"

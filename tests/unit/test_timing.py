@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from terrascope.core.utils.timing import humanise_duration, timed
+from terranova.core.utils.timing import humanise_duration, timed
 
 pytestmark = pytest.mark.unit
 

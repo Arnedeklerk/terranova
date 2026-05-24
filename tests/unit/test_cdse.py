@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from terrascope.core.catalog.cdse import (
+from terranova.core.catalog.cdse import (
     CDSEToken,
     DeviceFlowChallenge,
     forget_token,
@@ -45,7 +45,7 @@ def test_device_flow_challenge_is_frozen() -> None:
 
 def test_token_cache_round_trip(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     p = tmp_path / "cdse_token.json"
-    monkeypatch.setattr("terrascope.core.catalog.cdse.token_cache_path", lambda: p)
+    monkeypatch.setattr("terranova.core.catalog.cdse.token_cache_path", lambda: p)
     token = CDSEToken("acc", "ref", expires_at=time.time() + 3600)
     save_token(token)
     loaded = load_cached_token()
@@ -58,5 +58,5 @@ def test_token_cache_round_trip(tmp_path, monkeypatch) -> None:  # type: ignore[
 def test_corrupt_cache_returns_none(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     p = tmp_path / "cdse_token.json"
     p.write_text("not json")
-    monkeypatch.setattr("terrascope.core.catalog.cdse.token_cache_path", lambda: p)
+    monkeypatch.setattr("terranova.core.catalog.cdse.token_cache_path", lambda: p)
     assert load_cached_token() is None

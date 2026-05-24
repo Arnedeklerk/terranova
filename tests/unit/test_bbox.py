@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.core.models import BBox
-from terrascope.core.utils.bbox import (
+from terranova.core.models import BBox
+from terranova.core.utils.bbox import (
     area_deg2,
     buffer,
     height,

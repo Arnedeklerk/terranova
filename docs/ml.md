@@ -1,10 +1,10 @@
 # ML stack
 
-TerraScope's ML stack is deliberately split into a **classical** layer (sklearn / LightGBM / XGBoost) and a **foundation-model** layer (TerraTorch wrappers around Prithvi, Clay, TerraMind, SAM 3). Both feed into the same inference path that writes a Cloud-Optimised GeoTIFF.
+Terranova's ML stack is deliberately split into a **classical** layer (sklearn / LightGBM / XGBoost) and a **foundation-model** layer (TerraTorch wrappers around Prithvi, Clay, TerraMind, SAM 3). Both feed into the same inference path that writes a Cloud-Optimised GeoTIFF.
 
 ## Default install (no GPU)
 
-The default `pip install terrascope` gives you:
+The default `pip install terranova` gives you:
 
 - scikit-learn — the full classical roster
 - ONNX Runtime CPU — inference without PyTorch
@@ -48,7 +48,7 @@ Adds `onnxruntime-gpu` for CUDA inference. Foundation-model **fine-tuning** stil
 
 ## Reproducibility
 
-Every training run records its full `ClassifierConfig` (random seed included) into the project ledger. Re-running the recipe with the same `terrascope.json` reproduces the result bit-for-bit on the same machine.
+Every training run records its full `ClassifierConfig` (random seed included) into the project ledger. Re-running the recipe with the same `terranova.json` reproduces the result bit-for-bit on the same machine.
 
 ## Exporting to ONNX
 

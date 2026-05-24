@@ -10,8 +10,8 @@ import pytest
 
 sklearn = pytest.importorskip("sklearn")
 
-from terrascope.core.ml.classical import build_estimator  # noqa: E402
-from terrascope.core.models import ClassifierConfig, ClassifierKind  # noqa: E402
+from terranova.core.ml.classical import build_estimator  # noqa: E402
+from terranova.core.models import ClassifierConfig, ClassifierKind  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -73,7 +73,7 @@ def test_train_predict_round_trip() -> None:
     """Smoke test: tiny dataset, fit, predict, accuracy >= 0.5."""
     import numpy as np
 
-    from terrascope.core.ml.classical import train
+    from terranova.core.ml.classical import train
 
     rng = np.random.default_rng(0)
     X = rng.normal(size=(60, 3)).astype(np.float32)

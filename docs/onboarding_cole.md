@@ -1,11 +1,11 @@
-# Cole's first run — TerraScope
+# Cole's first run — Terranova
 
 Step-by-step from "freshly cloned" to "exercising every dialog". Targeted at
 your install:
 
-- Repo: `C:\Users\coleb\OneDrive\Documents\GitHub\terrascope`
+- Repo: `C:\Users\coleb\OneDrive\Documents\GitHub\terranova`
 - QGIS: `C:\Program Files\QGIS 3.40.8` (LTR — perfect)
-- Profile dir QGIS will look in: `C:\Users\coleb\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\terrascope`
+- Profile dir QGIS will look in: `C:\Users\coleb\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\terranova`
 
 The instructions assume you're on Windows with PowerShell. Where Bash-style
 syntax differs I call it out.
@@ -31,7 +31,7 @@ keep the download small.  The plugin's dock will say
 
 **This is fine — you don't need it.**  The dock's embedded web panel only
 hosts the welcome screen and a Catalog tab.  **Every real workflow is in
-the QGIS menu bar** (Raster → TerraScope → …), not in the dock.  All the
+the QGIS menu bar** (Raster → Terranova → …), not in the dock.  All the
 test cases below use the menu, not the dock, so just ignore the dock
 warning.
 
@@ -53,7 +53,7 @@ release `.zip` but for a from-source clone you build them once.
 Open **PowerShell** (regular, not OSGeo4W) and:
 
 ```powershell
-cd "C:\Users\coleb\OneDrive\Documents\GitHub\terrascope\src\terrascope\ui_web"
+cd "C:\Users\coleb\OneDrive\Documents\GitHub\terranova\src\terranova\ui_web"
 npm install
 npm run build
 ```
@@ -72,12 +72,12 @@ Vite + React pull a few hundred packages.
 Open the **OSGeo4W Shell** (not PowerShell). Then:
 
 ```cmd
-python -m pip install -e "C:/Users/coleb/OneDrive/Documents/GitHub/terrascope[timeseries]"
+python -m pip install -e "C:/Users/coleb/OneDrive/Documents/GitHub/terranova[timeseries]"
 ```
 
 One line, no `--no-deps`. This:
 
-- Installs the `terrascope` package editable (you can edit code and it picks
+- Installs the `terranova` package editable (you can edit code and it picks
   up changes without reinstalling).
 - Pulls every base dep from `pyproject.toml` — pystac-client,
   planetary-computer, odc-stac, rio-cogeo, scikit-learn, reportlab,
@@ -103,15 +103,15 @@ Optional extras (skip unless you specifically want them):
 Back in **regular PowerShell**:
 
 ```powershell
-$src  = "C:\Users\coleb\OneDrive\Documents\GitHub\terrascope"
-$dest = "$env:APPDATA\QGIS\QGIS3\profiles\default\python\plugins\terrascope"
+$src  = "C:\Users\coleb\OneDrive\Documents\GitHub\terranova"
+$dest = "$env:APPDATA\QGIS\QGIS3\profiles\default\python\plugins\terranova"
 
 # Wipe any previous install
 Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
 
 # Copy the source tree + metadata
-Copy-Item -Recurse "$src\src\terrascope" $dest
+Copy-Item -Recurse "$src\src\terranova" $dest
 Copy-Item        "$src\metadata.txt"     "$dest\metadata.txt" -Force
 ```
 
@@ -123,7 +123,7 @@ Note the path uses `QGIS3` not `QGIS4` (because you're on the 3.40 LTR).
 
 1. Launch QGIS.
 2. **Plugins → Manage and Install Plugins → Installed**.
-3. Tick **TerraScope**.
+3. Tick **Terranova**.
 
 If it doesn't show:
 
@@ -132,21 +132,21 @@ If it doesn't show:
   can stick).
 - Restart QGIS.
 
-If TerraScope still doesn't appear, open **Plugins → Python Console**
+If Terranova still doesn't appear, open **Plugins → Python Console**
 (`Ctrl+Alt+P`) and paste this one-liner:
 
 ```python
-exec("import qgis.utils, terrascope; print('terrascope', terrascope.__version__, 'in available:', 'terrascope' in qgis.utils.available_plugins)")
+exec("import qgis.utils, terranova; print('terranova', terranova.__version__, 'in available:', 'terranova' in qgis.utils.available_plugins)")
 ```
 
-Expected: `terrascope 0.1.0 in available: True`. If you get an import error
+Expected: `terranova 0.1.0 in available: True`. If you get an import error
 instead, paste me the traceback.
 
 ---
 
 ## 5. Sanity check — Processing Toolbox
 
-`Ctrl+Alt+T` to open the Processing Toolbox. Expand the **TerraScope**
+`Ctrl+Alt+T` to open the Processing Toolbox. Expand the **Terranova**
 provider. You should see two groups:
 
 - **Indices**: Compute NDVI, NDWI, NDMI, NBR, NDSI
@@ -170,13 +170,13 @@ else's).
 
 ### T0.1 — Toolbar dock opens
 
-Click the **TerraScope icon** in the QGIS toolbar (the icon at the top of
+Click the **Terranova icon** in the QGIS toolbar (the icon at the top of
 the QGIS window, blue planet-ish glyph). The right-side dock opens with a
 welcome screen showing four cards (Classify a scene, Detect change,
 Download imagery, Segment with AI) plus tabs at the top.
 
 **Expected**: dock loads, no errors in the **View → Panels → Log
-Messages → TerraScope** tab.
+Messages → Terranova** tab.
 
 **Phase**: 0. If this fails, the React panel isn't bundled (run `npm run
 build` again) or QtWebEngine isn't available (unlikely on Windows).
@@ -192,7 +192,7 @@ round-trip through the QWebChannel bridge.
 ### T0.3 — Telemetry consent dialog
 
 First time you open the dock, you should see a dialog "Help us improve
-TerraScope?" with Yes / No options and an expandable "Show next outbound
+Terranova?" with Yes / No options and an expandable "Show next outbound
 payload" preview. **Pick No** unless you want to test the network round-trip.
 
 **Phase**: 0. Exercises the privacy-policy-enforced six-field payload.
@@ -205,7 +205,7 @@ payload" preview. **Pick No** unless you want to test the network round-trip.
 
 ### T1.1 — Catalogue search (Planetary Computer)
 
-**Raster → TerraScope → Catalogue search…**
+**Raster → Terranova → Catalogue search…**
 
 1. Zoom QGIS to anywhere with land — Cambridge UK is easy (paste
    `52.205,0.119` into the bottom-bar coordinate box, hit Enter).
@@ -246,7 +246,7 @@ the class value as you draw each polygon.
 
 **Option B**: import an existing labelled set you trust.
 
-Then **Raster → TerraScope → Classify scene…**
+Then **Raster → Terranova → Classify scene…**
 
 1. Input raster: the COG you downloaded.
 2. Training vector: your polygons.
@@ -268,7 +268,7 @@ For this you need a *separate* set of validation polygons (held out from
 training). If you only have one set, just reuse it — the accuracy will
 look unrealistically perfect, but the PDF will still render correctly.
 
-**Raster → TerraScope → Accuracy report…**
+**Raster → Terranova → Accuracy report…**
 
 1. Classified raster: the output from T1.3.
 2. Validation vector: your held-out polygons.
@@ -287,7 +287,7 @@ colormap (perceptually uniform, CVD-friendly).
 
 Quick standalone test if T1.3 is too much:
 
-**Processing Toolbox → TerraScope → Indices → Compute NDVI**
+**Processing Toolbox → Terranova → Indices → Compute NDVI**
 
 Input: any multi-band raster (the COG from T1.2 works). Red band = 3,
 NIR band = 4 (or 1 and 4 for some rasters). Run.
@@ -307,7 +307,7 @@ dialog for which bands to assign.
 
 ### T1.7 — Sieve / majority filter (post-processing)
 
-Take a classified raster (T1.3 output) → **Processing → TerraScope →
+Take a classified raster (T1.3 output) → **Processing → Terranova →
 Post-processing → Sieve filter**. Set min component size to e.g. 8. Run.
 You should see salt-and-pepper noise cleaned up.
 
@@ -315,7 +315,7 @@ You should see salt-and-pepper noise cleaned up.
 
 ### T1.8 — CDSE sign-in (optional)
 
-If you have a Copernicus Data Space account: **Raster → TerraScope →
+If you have a Copernicus Data Space account: **Raster → Terranova →
 Sign in to CDSE…** → Start sign-in → browser opens with a 6-character
 code → type the code → close browser → status flips to "Signed in".
 
@@ -339,7 +339,7 @@ python -m pip install segment-geospatial
 
 Then in QGIS:
 
-**Raster → TerraScope → Segment with SAM…**
+**Raster → Terranova → Segment with SAM…**
 
 1. Input raster: any raster (the T1.2 download works, or aerial imagery).
 2. Model: SAM 2 base (smallest, fastest first time).
@@ -368,7 +368,7 @@ dialog) when done.
 Only attempt this if you have a CUDA GPU. Otherwise it'll work on CPU
 but take an hour+ per epoch.
 
-**Raster → TerraScope → Fine-tune foundation model…**
+**Raster → Terranova → Fine-tune foundation model…**
 
 You need paired scene + mask rasters. The mask is a single-band raster
 where each pixel is the class id (0 = background/nodata). Mask must align
@@ -391,7 +391,7 @@ inference.
 
 ### T3.1 — Build a time-series cube + run CuSum
 
-**Raster → TerraScope → Time-series + change detection…**
+**Raster → Terranova → Time-series + change detection…**
 
 1. **Use canvas extent** — keep it small (5×5 km) for a first test;
    bigger AOIs take longer.
@@ -444,7 +444,7 @@ statistical apparatus and want to wrestle OpenCL drivers.
 **Owner**: Phase 4. Nothing for you to test locally.
 
 This phase covers: Cloudflare Worker for telemetry, landing page at
-`terrascope.app`, auto-update check, Crowdin i18n sync, release-to-
+`terranova.app`, auto-update check, Crowdin i18n sync, release-to-
 plugins.qgis.org via `qgis-plugin-ci`. None of these run on the
 end-user's machine.
 
@@ -452,11 +452,11 @@ The one client-side bit is the auto-update check — open the Python
 console and:
 
 ```python
-from terrascope.core.update_check import check_for_updates
+from terranova.core.update_check import check_for_updates
 print(check_for_updates())
 ```
 
-It pings `https://terrascope.app/latest.json`. Until that endpoint exists,
+It pings `https://terranova.app/latest.json`. Until that endpoint exists,
 this returns `None` (the function gracefully handles network errors).
 
 **Phase**: 4. Not user-testable until the domain is registered and the
@@ -487,17 +487,17 @@ need to be quite hands-on with the underlying tools.
 
 ## When things break
 
-1. **First place to look**: `View → Panels → Log Messages → TerraScope`
+1. **First place to look**: `View → Panels → Log Messages → Terranova`
    tab in QGIS. Almost every error gets logged there with a stack trace.
 
 2. **Python Console** (`Ctrl+Alt+P`): try importing the failing module
    directly to see the real traceback.
 
-3. **TerraScope's testing harness** can be re-run from outside QGIS
+3. **Terranova's testing harness** can be re-run from outside QGIS
    to isolate domain-layer bugs from QGIS-layer bugs:
 
 ```cmd
-cd "C:\Users\coleb\OneDrive\Documents\GitHub\terrascope"
+cd "C:\Users\coleb\OneDrive\Documents\GitHub\terranova"
 python -m pytest tests/unit -v -m unit
 ```
 

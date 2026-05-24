@@ -4,7 +4,7 @@ backed by a real Python dispatch handler.
 This is the test that would have caught the CommandPalette / Welcome
 'action does nothing' bugs before they ever hit a user.  When you add a
 new ``invoke("foo.bar", ...)`` on the TS side you must also register it
-in :class:`terrascope.controllers.Controllers._register` or this test
+in :class:`terranova.controllers.Controllers._register` or this test
 fails.
 
 Lives as a unit test (not in CI's TS jobs) because we want it to run
@@ -21,8 +21,8 @@ import pytest
 pytestmark = pytest.mark.unit
 
 REPO = Path(__file__).resolve().parents[2]
-UI_WEB = REPO / "src" / "terrascope" / "ui_web" / "src"
-DISPATCH = REPO / "src" / "terrascope" / "controllers" / "dispatch.py"
+UI_WEB = REPO / "src" / "terranova" / "ui_web" / "src"
+DISPATCH = REPO / "src" / "terranova" / "controllers" / "dispatch.py"
 
 # Actions referenced in code comments / strings that aren't real calls.
 KNOWN_NON_INVOCATIONS = {"project.state.get"}

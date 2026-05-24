@@ -5,7 +5,7 @@ during the Phase-0 build and is recorded so we don't litigate it twice.
 
 ## D-1: `src/` layout
 
-**Chosen:** `src/terrascope/` not flat `terrascope/`.
+**Chosen:** `src/terranova/` not flat `terranova/`.
 **Why:** prevents the "you can import the package without installing it" foot-gun that masks dependency errors; matches modern hatchling / uv defaults; encourages clean test runs.
 
 ## D-2: Three-layer architecture with a pure domain
@@ -64,15 +64,15 @@ during the Phase-0 build and is recorded so we don't litigate it twice.
 **Chosen:** GPL-3-or-later.
 **Why:** mandated for plugins.qgis.org; compatible with qfluentwidgets; copy-left protects derivative works as the brief positions us against SCP-derived forks.
 
-## D-13: TerraScope (name)
+## D-13: Terranova (name)
 
-**Chosen:** TerraScope.
+**Chosen:** Terranova.
 **Why:** the brief's preferred option; no apparent trademark conflicts in the QGIS plugin space; clean to pronounce in any of en/fr/es/pt/de/it (the six launch locales).
 
 ## D-14: Recipes as YAML, not Python
 
 **Chosen:** YAML recipes that map to a tightly-scoped subset of controller actions.
-**Why:** non-developers can author recipes; the limited DSL is deliberately too small to need a sandbox; full-power scripting still uses Python via `terrascope.api`.
+**Why:** non-developers can author recipes; the limited DSL is deliberately too small to need a sandbox; full-power scripting still uses Python via `terranova.api`.
 
 ## D-15: Optional dependency groups
 
@@ -96,7 +96,7 @@ during the Phase-0 build and is recorded so we don't litigate it twice.
 
 ## D-19: PII-scrubbing in the package logger
 
-**Chosen:** A `logging.Filter` on `getLogger("terrascope")` runs `scrub(message)` on every record.
+**Chosen:** A `logging.Filter` on `getLogger("terranova")` runs `scrub(message)` on every record.
 **Why:** even with opt-in telemetry, a careless `logger.info(user_email)` could end up in a screenshot or a support attachment. Scrub at the source.
 
 ## D-20: Block default Phase 0 from any foundation-model checkpoint

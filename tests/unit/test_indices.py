@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from terrascope.core.timeseries.indices import ndvi
+from terranova.core.timeseries.indices import ndvi
 
 pytestmark = pytest.mark.unit
 
@@ -51,7 +51,7 @@ def test_ndvi_shape_preserved() -> None:
 # --------------------------------------------------------------------------- #
 # Other normalised-difference indices                                         #
 # --------------------------------------------------------------------------- #
-from terrascope.core.timeseries.indices import evi, nbr, ndmi, ndsi, ndwi, savi
+from terranova.core.timeseries.indices import evi, nbr, ndmi, ndsi, ndwi, savi
 
 
 def test_ndwi_water_is_positive() -> None:

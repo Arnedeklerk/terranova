@@ -1,4 +1,4 @@
-# TerraScope
+# Terranova
 
 > Earth observation for QGIS.
 
@@ -13,7 +13,7 @@ A modern QGIS plugin (3.40+ / 4.x) for STAC search, classification, accuracy rep
 
 ## Why
 
-The Semi-Automatic Classification Plugin (SCP) is the de-facto QGIS plugin for supervised classification, with 1.15 M+ cumulative downloads and a decade of feature accretion. But its UX has not been redesigned since 2016, its install path is fragile, and its classifier stack is sklearn-era. TerraScope replaces it with:
+The Semi-Automatic Classification Plugin (SCP) is the de-facto QGIS plugin for supervised classification, with 1.15 M+ cumulative downloads and a decade of feature accretion. But its UX has not been redesigned since 2016, its install path is fragile, and its classifier stack is sklearn-era. Terranova replaces it with:
 
 - **STAC + COG everywhere.** Search Planetary Computer, Earth Search, and CDSE; build lazy xarray cubes without scene-by-scene download.
 - **Foundation models.** Prithvi-EO-2.0, Clay v1.5, TerraMind, SAM 3 — via [TerraTorch](https://github.com/IBM/terratorch) and segment-geospatial.
@@ -40,8 +40,8 @@ See [docs/architecture.md](docs/architecture.md) for the full diagram.
 
 ```bash
 # Clone and install dev deps (Python 3.10–3.12)
-git clone https://github.com/Arnedeklerk/terrascope
-cd terrascope
+git clone https://github.com/Arnedeklerk/terranova
+cd terranova
 uv sync --all-extras --dev
 
 # Build the React panel
@@ -51,11 +51,11 @@ make ui-build
 make deploy
 ```
 
-End-user installs go via Plugins → Manage and Install → Search "TerraScope" (once published to plugins.qgis.org).
+End-user installs go via Plugins → Manage and Install → Search "Terranova" (once published to plugins.qgis.org).
 
 ## Coming from SCP?
 
-See [docs/scp_migration.md](docs/scp_migration.md) — one-page cheat-sheet mapping every SCP concept to its TerraScope equivalent.
+See [docs/scp_migration.md](docs/scp_migration.md) — one-page cheat-sheet mapping every SCP concept to its Terranova equivalent.
 
 ## Phase plan
 

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "terrascope"
+name = "terranova"
 version = "0.1.0"
 description = "A modern QGIS plugin for semi-automatic classification, foundation models, and time-series change detection."
 readme = "README.md"
@@ -89,19 +89,19 @@ dev = [
 ]
 
 [project.scripts]
-terrascope = "terrascope.cli:main"
+terranova = "terranova.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Arnedeklerk/terrascope"
-Repository = "https://github.com/Arnedeklerk/terrascope"
-Issues = "https://github.com/Arnedeklerk/terrascope/issues"
+Homepage = "https://github.com/Arnedeklerk/terranova"
+Repository = "https://github.com/Arnedeklerk/terranova"
+Issues = "https://github.com/Arnedeklerk/terranova/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/terrascope"]
+packages = ["src/terranova"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "src/terrascope",
+    "src/terranova",
     "metadata.txt",
     "README.md",
     "LICENSE",

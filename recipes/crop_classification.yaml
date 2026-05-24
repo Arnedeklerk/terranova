@@ -1,7 +1,7 @@
-# TerraScope recipe: crop classification on Sentinel-2 L2A.
+# Terranova recipe: crop classification on Sentinel-2 L2A.
 #
 # Recipes are loaded by the welcome screen and shown as one-click workflows.
-# Each step references a controller action exposed by terrascope.controllers.
+# Each step references a controller action exposed by terranova.controllers.
 
 name: Crop classification (Sentinel-2)
 description: |

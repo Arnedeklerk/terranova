@@ -1,17 +1,17 @@
 [general]
-name=TerraScope
+name=Terranova
 qgisMinimumVersion=3.40
 qgisMaximumVersion=4.99
 description=Earth-observation toolkit for QGIS: STAC search, classical + deep-learning classification, time-series change detection.
-about=TerraScope is an open-source QGIS plugin for modern Earth observation. STAC catalogue search and COG download from Planetary Computer / Earth Search / Copernicus Data Space; an embedded interactive map (Leaflet) for picking AOIs and inspecting scene footprints; classical (Random Forest / LightGBM / XGBoost) and deep-learning (Prithvi, Clay, SAM via TerraTorch + segment-geospatial) classification; accuracy reports; time-series change detection (CuSum, BFAST, LandTrendr). Dual UI: native Qt dialogs (compatibility) and a React dock panel via QtWebEngine (primary). GPL-3.0-or-later.
-version=0.1.0
+about=Terranova is an open-source QGIS plugin for modern Earth observation. STAC catalogue search and COG download from Planetary Computer / Earth Search / Copernicus Data Space; an embedded interactive map (Leaflet) for picking AOIs and inspecting scene footprints; classical (Random Forest / LightGBM / XGBoost) and deep-learning (Prithvi, Clay, SAM via TerraTorch + segment-geospatial) classification; accuracy reports; time-series change detection (CuSum, BFAST, LandTrendr). Dual UI: native Qt dialogs (compatibility) and a React dock panel via QtWebEngine (primary). GPL-3.0-or-later.
+version=0.1.1
 author=Cole Battell, Arne de Klerk
-email=arne@knetminer.com
-homepage=https://github.com/Arnedeklerk/terrascope
-repository=https://github.com/Arnedeklerk/terrascope
-tracker=https://github.com/Arnedeklerk/terrascope/issues
+email=colebattell@gmail.com
+homepage=https://github.com/Arnedeklerk/terranova
+repository=https://github.com/Arnedeklerk/terranova
+tracker=https://github.com/Arnedeklerk/terranova/issues
 icon=resources/icon.svg
-experimental=True
+experimental=False
 deprecated=False
 hasProcessingProvider=yes
 tags=remote sensing, classification, machine learning, deep learning, sentinel, landsat, stac, change detection, time series, segment anything, prithvi

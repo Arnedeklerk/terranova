@@ -1,6 +1,6 @@
 # Telemetry
 
-TerraScope's telemetry is **opt-in**, **minimal**, and **inspectable**. The summary on this page is the same one in [PRIVACY.md](https://github.com/Arnedeklerk/terrascope/blob/main/PRIVACY.md), elaborated for readers who want to dig into the implementation.
+Terranova's telemetry is **opt-in**, **minimal**, and **inspectable**. The summary on this page is the same one in [PRIVACY.md](https://github.com/Arnedeklerk/terranova/blob/main/PRIVACY.md), elaborated for readers who want to dig into the implementation.
 
 ## What is sent
 
@@ -25,17 +25,17 @@ Only if you opt in. On first launch, the welcome panel shows a one-time dialog w
 - **Yes, help out** — sets `decision = opted_in`.
 - Closing the dialog leaves `decision = not_asked` and you'll be asked again on the next launch.
 
-The `decision` is persisted in `~/.config/terrascope/telemetry.json` (or the platform-equivalent location).
+The `decision` is persisted in `~/.config/terranova/telemetry.json` (or the platform-equivalent location).
 
 ## Inspecting the payload
 
-Settings → Privacy → **Show next outbound payload** runs `terrascope.core.telemetry.client.inspect_next_payload(...)` and renders the resulting JSON in the dialog. The inspector path is guaranteed never to touch the network — there's a test for that too (`test_inspect_does_not_send`).
+Settings → Privacy → **Show next outbound payload** runs `terranova.core.telemetry.client.inspect_next_payload(...)` and renders the resulting JSON in the dialog. The inspector path is guaranteed never to touch the network — there's a test for that too (`test_inspect_does_not_send`).
 
 ## Transport and retention
 
 If enabled:
 
-- Events are POSTed to `https://t.terrascope.app/v1/events` over TLS.
+- Events are POSTed to `https://t.terranova.app/v1/events` over TLS.
 - A daemon thread sends — telemetry never blocks the UI thread.
 - Network errors are silently swallowed; telemetry must never break the plugin.
 - Rate-limited to 1 event per second by the client (further rate-limiting at the edge).
@@ -51,8 +51,8 @@ Uninstall removes the telemetry settings file and the installation id with it. T
 
 ## Code references
 
-- Implementation: `src/terrascope/core/telemetry/`.
+- Implementation: `src/terranova/core/telemetry/`.
 - Privacy policy (authoritative): `PRIVACY.md`.
 - Tests that enforce the privacy policy: `tests/unit/test_telemetry.py`.
-- Dispatch handlers (`app.telemetry.{status,set,inspect}`): `src/terrascope/controllers/dispatch.py`.
-- First-run UI: `src/terrascope/ui_web/src/panels/TelemetryConsent.tsx`.
+- Dispatch handlers (`app.telemetry.{status,set,inspect}`): `src/terranova/controllers/dispatch.py`.
+- First-run UI: `src/terranova/ui_web/src/panels/TelemetryConsent.tsx`.

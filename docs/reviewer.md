@@ -1,10 +1,10 @@
 # Reviewer checklist
 
-Run through this checklist when reviewing a TerraScope PR.  Anything that doesn't fit a checkbox warrants a written comment.
+Run through this checklist when reviewing a Terranova PR.  Anything that doesn't fit a checkbox warrants a written comment.
 
 ## Hard rules — always check
 
-- [ ] No new imports of `qgis.*` or `PyQt*` under `src/terrascope/core/**`.  The `test_core_purity` test catches obvious cases; reviewers catch the cunning ones (e.g. hidden inside a function body).
+- [ ] No new imports of `qgis.*` or `PyQt*` under `src/terranova/core/**`.  The `test_core_purity` test catches obvious cases; reviewers catch the cunning ones (e.g. hidden inside a function body).
 - [ ] No new fields added to the telemetry payload without a matching PRIVACY.md change.  If the test `test_payload_contains_only_documented_fields` was edited, scrutinise why.
 - [ ] No `eval` / `exec` / `subprocess.shell=True` introduced anywhere.
 - [ ] Bridge actions registered in `controllers/dispatch.py` accept Pydantic-validated payloads.
@@ -21,7 +21,7 @@ Run through this checklist when reviewing a TerraScope PR.  Anything that doesn'
 
 ## Backward compatibility
 
-- [ ] `terrascope.api.__all__` unchanged or extended — never reduced.
+- [ ] `terranova.api.__all__` unchanged or extended — never reduced.
 - [ ] `ProjectState` schema_version bumped if any breaking change to persisted state.
 - [ ] `metadata.txt` `version` matches `version.py` (`scripts/sync_version.py --check`).
 

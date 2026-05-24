@@ -7,12 +7,12 @@ preserve_hierarchy: true
 
 files:
   # Native Qt strings — pylupdate6 produces these from .py files.
-  - source: src/terrascope/i18n/terrascope.ts
-    translation: src/terrascope/i18n/terrascope_%locale_with_underscore%.ts
+  - source: src/terranova/i18n/terranova.ts
+    translation: src/terranova/i18n/terranova_%locale_with_underscore%.ts
 
   # Web tier strings — extracted by i18next-parser into one JSON per locale.
-  - source: src/terrascope/ui_web/src/i18n/en.json
-    translation: src/terrascope/ui_web/src/i18n/%locale%.json
+  - source: src/terranova/ui_web/src/i18n/en.json
+    translation: src/terranova/ui_web/src/i18n/%locale%.json
 
   # Documentation (MkDocs).  Per-page translation files.
   - source: docs/**/*.md

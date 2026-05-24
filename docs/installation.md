@@ -10,10 +10,10 @@ GPU acceleration for the foundation-model path needs a CUDA-capable NVIDIA card 
 
 ## End user — Plugins Manager
 
-Once TerraScope is published to plugins.qgis.org:
+Once Terranova is published to plugins.qgis.org:
 
 1. **Plugins → Manage and Install Plugins → All**.
-2. Search for **TerraScope**, click **Install Plugin**.
+2. Search for **Terranova**, click **Install Plugin**.
 3. Toggle the toolbar icon to open the dock.
 
 That's the supported install path; everything else below is for developers.
@@ -21,8 +21,8 @@ That's the supported install path; everything else below is for developers.
 ## Developer — from source
 
 ```bash
-git clone https://github.com/terrascope-rs/terrascope
-cd terrascope
+git clone https://github.com/terranova-rs/terranova
+cd terranova
 
 # All deps (uv recommended; pip works too)
 uv sync --all-extras --dev
@@ -44,7 +44,7 @@ Open the **OSGeo4W Shell** from the Start menu (not regular PowerShell — this
 one has QGIS's Python on PATH) and run:
 
 ```cmd
-python -m pip install -e "C:/CODE/GIS/terrascope[timeseries]"
+python -m pip install -e "C:/CODE/GIS/terranova[timeseries]"
 ```
 
 That's it.  Pulls the package + every base dependency from `pyproject.toml`
@@ -52,7 +52,7 @@ That's it.  Pulls the package + every base dependency from `pyproject.toml`
 foundation-model fine-tuning (warning: pulls multi-GB `torch` + `terratorch`):
 
 ```cmd
-python -m pip install -e "C:/CODE/GIS/terrascope[timeseries,ml]"
+python -m pip install -e "C:/CODE/GIS/terranova[timeseries,ml]"
 ```
 
 **Do not** pass `--no-deps` — that skips dependency resolution and you'll
@@ -86,7 +86,7 @@ sudo apt install python3-pyqtwebengine
 sudo dnf install qgis qt5-qtwebengine
 ```
 
-TerraScope degrades gracefully without QtWebEngine — native dialogs and Processing algorithms still work, but the React panel won't render.
+Terranova degrades gracefully without QtWebEngine — native dialogs and Processing algorithms still work, but the React panel won't render.
 
 ### `ModuleNotFoundError` for rasterio / pystac-client
 

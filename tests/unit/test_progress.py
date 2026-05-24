@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.core.utils.progress import ProgressReporter
+from terranova.core.utils.progress import ProgressReporter
 
 pytestmark = pytest.mark.unit
 

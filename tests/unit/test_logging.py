@@ -6,7 +6,7 @@ import logging
 
 import pytest
 
-from terrascope.core.utils.logging import error, info, set_qgis_sink, warning
+from terranova.core.utils.logging import error, info, set_qgis_sink, warning
 
 pytestmark = pytest.mark.unit
 
@@ -44,7 +44,7 @@ def test_without_sink_only_stdlib() -> None:
 
 
 # ---------------------- PII scrub ----------------------
-from terrascope.core.utils.logging import scrub  # noqa: E402
+from terranova.core.utils.logging import scrub  # noqa: E402
 
 
 def test_scrub_redacts_email() -> None:

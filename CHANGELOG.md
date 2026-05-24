@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to TerraScope are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to Terranova are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
@@ -45,7 +45,7 @@ All notable changes to TerraScope are documented here. The format follows [Keep 
 - Cloudflare Worker: `npm run typecheck` clean; **6 vitest tests pass**
   (incl. unknown-field-rejection enforcing the six-field privacy schema).
 - Web UI tier: `vite build` clean (105 modules, 192 kB → 63 kB gzipped).
-- CLI end-to-end smoke: `terrascope ndvi` synthesised a 4-band raster,
+- CLI end-to-end smoke: `terranova ndvi` synthesised a 4-band raster,
   ran NDVI, wrote a float32 GeoTIFF — output is 32×32, all 1024 pixels
   finite, range `[-0.85, +0.85]` matching the synthetic gradient.
 
@@ -55,7 +55,7 @@ All notable changes to TerraScope are documented here. The format follows [Keep 
 
 - Phase 0 prototype skeleton with Phase 1-shape extensions.
 - `src/` layout repo with hatchling, ruff, mypy strict, pytest, pre-commit, editorconfig, gitattributes.
-- `classFactory` + `TerraScopePlugin` lifecycle with dock toggle and Processing-provider registration.
+- `classFactory` + `TerranovaPlugin` lifecycle with dock toggle and Processing-provider registration.
 - Embedded `QWebEngineView` with React 18 + TypeScript + Tailwind + Radix UI.
 - `Bridge` QObject + QWebChannel with Pydantic-validated message round-trip.
 - Pure-Python domain layer covering:
@@ -72,7 +72,7 @@ All notable changes to TerraScope are documented here. The format follows [Keep 
   - BBox / colormap (Crameri default) / hashing / progress / logging utilities.
   - Match-to-template raster reprojection.
 - 7 Processing algorithms: NDVI, NDWI, NDMI, NBR, NDSI, majority filter, sieve.
-- `terrascope` CLI: `ndvi`, `index`, `search-s2`, `accuracy-report`, `validate-cog`.
+- `terranova` CLI: `ndvi`, `index`, `search-s2`, `accuracy-report`, `validate-cog`.
 - Web tier panels: Welcome, CatalogSearch, CommandPalette (Ctrl/Cmd+K), Inspector, SpectralPlot (Plotly), BeforeAfter (MapLibre), TelemetryConsent.
 - Zustand store; QWebChannel client with browser-dev stub.
 - Native Qt UI: dock with graceful fallbacks, dark/light QSS from `tokens.yaml`, SVG icon, sample QML classification style.
@@ -91,5 +91,5 @@ All notable changes to TerraScope are documented here. The format follows [Keep 
 - `docs/risks.md` + `docs/reviewer.md` + `docs/development.md` + `docs/installation.md` + `docs/cli.md` + `docs/telemetry.md` + `docs/recipes.md` + `docs/scp_migration.md` + `docs/phase4_deployment.md` + `docs/ml.md`.
 - GitHub `CODEOWNERS`, issue templates, PR template, security workflow (pip-audit + npm-audit + CodeQL), dependabot config.
 
-[Unreleased]: https://github.com/terrascope-rs/terrascope/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/terrascope-rs/terrascope/releases/tag/v0.1.0
+[Unreleased]: https://github.com/terranova-rs/terranova/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/terranova-rs/terranova/releases/tag/v0.1.0

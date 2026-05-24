@@ -26,5 +26,5 @@
 *.qm binary
 
 # Linguist hints — don't let GitHub call this a JS project because of ui_web/.
-src/terrascope/ui_web/dist/** linguist-generated=true
-src/terrascope/i18n/*.qm linguist-generated=true
+src/terranova/ui_web/dist/** linguist-generated=true
+src/terranova/i18n/*.qm linguist-generated=true

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope import config
-from terrascope.core.models import ClassifierKind, STACEndpoint
+from terranova import config
+from terranova.core.models import ClassifierKind, STACEndpoint
 
 pytestmark = pytest.mark.unit
 

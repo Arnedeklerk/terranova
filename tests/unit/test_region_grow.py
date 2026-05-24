@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from terrascope.core.roi.region_grow import region_grow
+from terranova.core.roi.region_grow import region_grow
 
 pytestmark = pytest.mark.unit
 

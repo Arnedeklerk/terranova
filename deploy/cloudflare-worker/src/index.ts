@@ -1,5 +1,5 @@
 /**
- * TerraScope telemetry endpoint — Cloudflare Worker.
+ * Terranova telemetry endpoint — Cloudflare Worker.
  *
  * Single POST endpoint at `/v1/events`.  Accepts the exact 6-field payload
  * defined in PRIVACY.md.  Drops anything else.  Rejects bodies that don't

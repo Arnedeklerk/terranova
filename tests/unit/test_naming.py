@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.core.utils.naming import layer_display_name, safe_filename, unique_path
+from terranova.core.utils.naming import layer_display_name, safe_filename, unique_path
 
 pytestmark = pytest.mark.unit
 

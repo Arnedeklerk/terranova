@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.core.sensors import (
+from terranova.core.sensors import (
     SENTINEL_2_BANDS,
     Sensor,
     asset_id,

@@ -17,15 +17,15 @@ body:
       label: Reproduction steps
       placeholder: |
         1. Open QGIS 3.40.1
-        2. Plugins → TerraScope
+        2. Plugins → Terranova
         3. Click Catalogue search
         4. ...
     validations:
       required: true
   - type: input
-    id: terrascope-version
+    id: terranova-version
     attributes:
-      label: TerraScope version
+      label: Terranova version
       placeholder: 0.1.0
     validations:
       required: true
@@ -46,6 +46,6 @@ body:
   - type: textarea
     id: log
     attributes:
-      label: TerraScope log output
-      description: Copy the contents of the "TerraScope" tab in the QGIS Log Messages panel.
+      label: Terranova log output
+      description: Copy the contents of the "Terranova" tab in the QGIS Log Messages panel.
       render: text

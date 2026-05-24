@@ -7,7 +7,7 @@ import pytest
 
 matplotlib = pytest.importorskip("matplotlib")
 
-from terrascope.core.viz.figures import (  # noqa: E402
+from terranova.core.viz.figures import (  # noqa: E402
     plot_confusion_matrix,
     plot_spectral_signatures,
 )

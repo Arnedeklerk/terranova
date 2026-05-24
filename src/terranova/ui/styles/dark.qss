@@ -1,0 +1,84 @@
+/* Terranova dark theme — generated from tokens.yaml */
+
+QWidget {
+    background-color: #0B0D10;
+    color: #E8ECF1;
+    font-family: "Inter", "Segoe UI Variable", "Segoe UI", -apple-system, sans-serif;
+    font-size: 13px;
+}
+
+QDockWidget {
+    background-color: #14171C;
+    titlebar-close-icon: none;
+    titlebar-normal-icon: none;
+}
+
+QDockWidget::title {
+    background-color: #1C2027;
+    padding: 6px 10px;
+    border-bottom: 1px solid #14171C;
+    color: #E8ECF1;
+}
+
+QPushButton {
+    background-color: #1C2027;
+    color: #E8ECF1;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 14px;
+}
+QPushButton:hover  { background-color: #232831; }
+QPushButton:pressed { background-color: #2A3140; }
+QPushButton:default {
+    background-color: #4F8AF7;
+    color: #FFFFFF;
+}
+QPushButton:default:hover { background-color: #6498F8; }
+
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QPlainTextEdit, QTextEdit {
+    background-color: #14171C;
+    color: #E8ECF1;
+    border: 1px solid #232831;
+    border-radius: 4px;
+    padding: 4px 8px;
+    selection-background-color: #4F8AF7;
+}
+
+QTreeView, QListView, QTableView {
+    background-color: #0B0D10;
+    alternate-background-color: #14171C;
+    selection-background-color: #4F8AF7;
+    selection-color: #FFFFFF;
+}
+
+QHeaderView::section {
+    background-color: #14171C;
+    color: #8A93A0;
+    border: none;
+    padding: 6px;
+}
+
+QProgressBar {
+    background-color: #14171C;
+    border: 1px solid #232831;
+    border-radius: 4px;
+    text-align: center;
+    color: #E8ECF1;
+}
+QProgressBar::chunk {
+    background-color: #4F8AF7;
+    border-radius: 3px;
+}
+
+QTabWidget::pane { border: 1px solid #232831; }
+QTabBar::tab {
+    background-color: #14171C;
+    color: #8A93A0;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+}
+QTabBar::tab:selected {
+    background-color: #1C2027;
+    color: #E8ECF1;
+    border-bottom: 2px solid #4F8AF7;
+}

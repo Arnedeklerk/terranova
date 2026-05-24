@@ -19,7 +19,7 @@ updates:
         patterns: ["rasterio*", "rioxarray*", "xarray*", "odc-*", "pystac*", "rio-*"]
 
   - package-ecosystem: "npm"
-    directory: "/src/terrascope/ui_web"
+    directory: "/src/terranova/ui_web"
     schedule:
       interval: "weekly"
       day: "monday"

@@ -8,7 +8,7 @@ import pytest
 
 yaml = pytest.importorskip("yaml")
 
-from terrascope.core.recipes import Recipe, RecipeError, load_recipe, load_recipe_dir  # noqa: E402
+from terranova.core.recipes import Recipe, RecipeError, load_recipe, load_recipe_dir  # noqa: E402
 
 pytestmark = pytest.mark.unit
 

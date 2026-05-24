@@ -22,18 +22,18 @@ def test_metadata_parseable() -> None:
     for key in ("name", "qgisMinimumVersion", "description", "version", "author", "email"):
         assert key in g, f"metadata.txt missing key: {key}"
     # Sanity values.
-    assert g["name"] == "TerraScope"
+    assert g["name"] == "Terranova"
     assert g["version"]
     assert "@" in g["email"]
 
 
 def test_version_matches_version_py() -> None:
-    from terrascope.version import __version__
+    from terranova.version import __version__
 
     parser = configparser.ConfigParser()
     parser.read(META, encoding="utf-8")
     assert parser["general"]["version"] == __version__, (
-        "metadata.txt version is out of sync with src/terrascope/version.py.  "
+        "metadata.txt version is out of sync with src/terranova/version.py.  "
         "Run scripts/sync_version.py --bump <new_version>."
     )
 

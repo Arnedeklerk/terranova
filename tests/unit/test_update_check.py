@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from terrascope.core import update_check
-from terrascope.core.update_check import is_newer_version
+from terranova.core import update_check
+from terranova.core.update_check import is_newer_version
 
 pytestmark = pytest.mark.unit
 

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.controllers import Controllers
-from terrascope.version import __version__
+from terranova.controllers import Controllers
+from terranova.version import __version__
 
 pytestmark = pytest.mark.unit
 

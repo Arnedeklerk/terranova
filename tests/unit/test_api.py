@@ -1,10 +1,10 @@
-"""``terrascope.api`` is the stable surface — test the shape doesn't regress."""
+"""``terranova.api`` is the stable surface — test the shape doesn't regress."""
 
 from __future__ import annotations
 
 import pytest
 
-from terrascope import api
+from terranova import api
 
 pytestmark = pytest.mark.unit
 

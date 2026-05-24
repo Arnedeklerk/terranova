@@ -1,20 +1,20 @@
-# TerraScope — module inventory
+# Terranova — module inventory
 
 A one-page map of what exists, where, and how complete it is.
 Status legend: **DONE** real implementation + tests · **STUB** signature only · **PARTIAL** real for the common path, edge cases TBD.
 
-## Plugin lifecycle (`src/terrascope/`)
+## Plugin lifecycle (`src/terranova/`)
 
 | File | What | Status |
 |------|------|--------|
 | `__init__.py` | `classFactory` entry point | DONE |
-| `plugin.py` | `TerraScopePlugin` (dock, processing provider) | DONE |
+| `plugin.py` | `TerranovaPlugin` (dock, processing provider) | DONE |
 | `version.py` | Single-source-of-truth version | DONE |
 | `bridge.py` | QWebChannel host + Pydantic validation | DONE |
 | `api.py` | Stable public Python surface | DONE |
 | `config.py` | Per-user settings (JSON) | DONE |
 
-## CLI (`src/terrascope/cli/`)
+## CLI (`src/terranova/cli/`)
 
 | Command | Status |
 |---------|--------|
@@ -24,7 +24,7 @@ Status legend: **DONE** real implementation + tests · **STUB** signature only �
 | `accuracy-report` | DONE |
 | `validate-cog` | DONE |
 
-## Domain (`src/terrascope/core/`)
+## Domain (`src/terranova/core/`)
 
 | Sub-package | Modules | Status |
 |-------------|---------|--------|
@@ -42,7 +42,7 @@ Status legend: **DONE** real implementation + tests · **STUB** signature only �
 | `utils/` | `bbox`, `colormap`, `hashing`, `logging`, `naming`, `parallel`, `progress`, `feature_flags` | DONE |
 | `sensors.py` | S2 / Landsat 4-9 band registry | DONE |
 | `models.py` | Cross-layer Pydantic models | DONE |
-| `errors.py` | TerraScopeError hierarchy | DONE |
+| `errors.py` | TerranovaError hierarchy | DONE |
 
 ## Controllers + tasks + processing
 
@@ -59,7 +59,7 @@ Status legend: **DONE** real implementation + tests · **STUB** signature only �
 
 ## UI
 
-### Native Qt (`src/terrascope/ui/`)
+### Native Qt (`src/terranova/ui/`)
 
 | File | Status |
 |------|--------|
@@ -69,7 +69,7 @@ Status legend: **DONE** real implementation + tests · **STUB** signature only �
 | `styles/{dark, light}.qss` + `tokens.yaml` | DONE |
 | `resources/{icon.svg, classification.qml}` | DONE |
 
-### Web (`src/terrascope/ui_web/`)
+### Web (`src/terranova/ui_web/`)
 
 | Panel | Status |
 |-------|--------|

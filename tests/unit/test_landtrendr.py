@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from terrascope.core.timeseries.landtrendr import segment_pixel
+from terranova.core.timeseries.landtrendr import segment_pixel
 
 pytestmark = pytest.mark.unit
 

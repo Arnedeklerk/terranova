@@ -1,4 +1,4 @@
-# TerraScope recipe: deforestation alerts via BFAST on Sentinel-2 NDVI.
+# Terranova recipe: deforestation alerts via BFAST on Sentinel-2 NDVI.
 
 name: Deforestation alerts (BFAST)
 description: |

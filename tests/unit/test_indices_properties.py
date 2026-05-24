@@ -8,7 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import array_shapes, arrays
 
-from terrascope.core.timeseries.indices import nbr, ndmi, ndsi, ndvi, ndwi
+from terranova.core.timeseries.indices import nbr, ndmi, ndsi, ndvi, ndwi
 
 pytestmark = pytest.mark.unit
 

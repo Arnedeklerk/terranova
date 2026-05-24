@@ -1,13 +1,13 @@
-name = "terrascope-telemetry"
+name = "terranova-telemetry"
 main = "src/index.ts"
 compatibility_date = "2026-05-01"
 account_id = ""  # fill from `wrangler whoami` after `wrangler login`
 
-# Custom domain: t.terrascope.app → this worker.  Set up via Cloudflare dash
-# (Workers & Pages → terrascope-telemetry → Triggers → Custom Domains) or via
+# Custom domain: t.terranova.app → this worker.  Set up via Cloudflare dash
+# (Workers & Pages → terranova-telemetry → Triggers → Custom Domains) or via
 # the API; wrangler.toml route bindings would tie it to a zone we control.
 # routes = [
-#   { pattern = "t.terrascope.app/*", custom_domain = true }
+#   { pattern = "t.terranova.app/*", custom_domain = true }
 # ]
 
 [[kv_namespaces]]

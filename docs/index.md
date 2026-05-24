@@ -1,12 +1,12 @@
-# TerraScope
+# Terranova
 
 > Classify Earth, gracefully.
 
 A modern QGIS 3.40+ / 4.x plugin for semi-automatic classification, foundation-model inference, and time-series change detection.
 
-## Why TerraScope
+## Why Terranova
 
-The Semi-Automatic Classification Plugin (SCP) has been the de-facto QGIS plugin for supervised classification for over a decade. Its scope is unmatched, but its UX has not been redesigned since 2016 and its classifier stack is sklearn-era. TerraScope keeps SCP's surface area and adds:
+The Semi-Automatic Classification Plugin (SCP) has been the de-facto QGIS plugin for supervised classification for over a decade. Its scope is unmatched, but its UX has not been redesigned since 2016 and its classifier stack is sklearn-era. Terranova keeps SCP's surface area and adds:
 
 - **STAC + COG everywhere.** Search Planetary Computer, Earth Search, and CDSE; build lazy xarray cubes without scene-by-scene download.
 - **Foundation models.** Prithvi-EO-2.0, Clay v1.5, TerraMind, SAM 3.

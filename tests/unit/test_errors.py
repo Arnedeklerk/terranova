@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.core import errors
+from terranova.core import errors
 
 pytestmark = pytest.mark.unit
 
@@ -18,13 +18,13 @@ def test_subclasses_share_base() -> None:
         errors.ProjectStateError,
         errors.CancelledError,
     ):
-        assert issubclass(sub, errors.TerraScopeError)
+        assert issubclass(sub, errors.TerranovaError)
 
 
 def test_catch_base_catches_everything() -> None:
-    with pytest.raises(errors.TerraScopeError):
+    with pytest.raises(errors.TerranovaError):
         raise errors.CatalogError("nope")
-    with pytest.raises(errors.TerraScopeError):
+    with pytest.raises(errors.TerranovaError):
         raise errors.ClassificationError("nope")
 
 

@@ -1,25 +1,25 @@
 # Phase 4 — deployment plan
 
-This page is the engineering checklist for getting TerraScope from "feature-complete in CI" to "v1.0.0 published on plugins.qgis.org". It is intentionally specific so a single engineer can work through it without surprises.
+This page is the engineering checklist for getting Terranova from "feature-complete in CI" to "v1.0.0 published on plugins.qgis.org". It is intentionally specific so a single engineer can work through it without surprises.
 
 ## Pre-flight
 
 - [ ] All Phase 0-3 features implemented and tested on Linux, Windows, macOS.
 - [ ] CI green on the latest commits, including QGIS-container integration.
-- [ ] `pytest -m unit` covers ≥ 80% of `src/terrascope/core/`.
+- [ ] `pytest -m unit` covers ≥ 80% of `src/terranova/core/`.
 - [ ] Architectural guard (`test_no_qgis_or_qt_imports_in_core`) passes.
 - [ ] Architectural guard: telemetry payload still six fields (`test_payload_contains_only_documented_fields`).
 
 ## Infrastructure
 
-- [ ] Reserve `terrascope.app` (Cloudflare Registrar).
+- [ ] Reserve `terranova.app` (Cloudflare Registrar).
 - [ ] DNS:
-  - [ ] `terrascope.app` → Cloudflare Pages (landing page).
-  - [ ] `docs.terrascope.app` → GitHub Pages (MkDocs).
-  - [ ] `t.terrascope.app` → Cloudflare Worker (telemetry endpoint).
-  - [ ] MX → Cloudflare Email Routing (forwarding `*@terrascope.app`).
+  - [ ] `terranova.app` → Cloudflare Pages (landing page).
+  - [ ] `docs.terranova.app` → GitHub Pages (MkDocs).
+  - [ ] `t.terranova.app` → Cloudflare Worker (telemetry endpoint).
+  - [ ] MX → Cloudflare Email Routing (forwarding `*@terranova.app`).
 - [ ] Cloudflare Workers KV for telemetry events; retention policy 30 days raw / aggregated weekly.
-- [ ] GitHub Org `terrascope-rs` created with `terrascope`, `terrascope-core` (Phase 4+), `terrascope-docs` repos.
+- [ ] GitHub Org `terranova-rs` created with `terranova`, `terranova-core` (Phase 4+), `terranova-docs` repos.
 - [ ] plugins.qgis.org account; verify ownership email.
 
 ## Plugin metadata
@@ -54,7 +54,7 @@ This page is the engineering checklist for getting TerraScope from "feature-comp
 
 ## Post-1.0
 
-- [ ] Publish `terrascope-core` to PyPI for non-QGIS use of the domain layer.
+- [ ] Publish `terranova-core` to PyPI for non-QGIS use of the domain layer.
 - [ ] Crowdin integration for community translations.
 - [ ] First `1.1` planning issue with the prioritised post-launch backlog.
 

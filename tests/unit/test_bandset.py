@@ -7,7 +7,7 @@ import pytest
 
 rasterio = pytest.importorskip("rasterio")
 
-from terrascope.core.stacking.bandset import from_raster  # noqa: E402
+from terranova.core.stacking.bandset import from_raster  # noqa: E402
 
 pytestmark = pytest.mark.unit
 

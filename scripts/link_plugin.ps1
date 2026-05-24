@@ -1,4 +1,4 @@
-# Link the TerraScope source tree into the QGIS plugins folder.
+# Link the Terranova source tree into the QGIS plugins folder.
 #
 # Replaces the make-deploy `cp -r` step with a Windows directory junction
 # so `git pull` is enough to update the running plugin — no copy step.
@@ -7,7 +7,7 @@
 #     .\scripts\link_plugin.ps1
 #
 # Optional:
-#     .\scripts\link_plugin.ps1 -RepoRoot "D:\code\terrascope"
+#     .\scripts\link_plugin.ps1 -RepoRoot "D:\code\terranova"
 #     .\scripts\link_plugin.ps1 -QgisMajor 3        # for QGIS 3.x profiles
 
 [CmdletBinding()]
@@ -24,7 +24,7 @@ function Write-Warn2($msg)   { Write-Host "    $msg" -ForegroundColor Yellow }
 function Die($msg)           { Write-Host "ERROR: $msg" -ForegroundColor Red; exit 1 }
 
 # --- locate source ---------------------------------------------------------
-$srcPackage = Join-Path $RepoRoot "src\terrascope"
+$srcPackage = Join-Path $RepoRoot "src\terranova"
 $metadata   = Join-Path $RepoRoot "metadata.txt"
 if (-not (Test-Path $srcPackage)) { Die "Source not found: $srcPackage" }
 if (-not (Test-Path $metadata))   { Die "metadata.txt not found: $metadata" }
@@ -57,7 +57,7 @@ if ($QgisMajor -eq 0) {
 
 $profileDir = Join-Path $qgisRoot "QGIS$QgisMajor\profiles\default"
 $pluginsDir = Join-Path $profileDir "python\plugins"
-$dest       = Join-Path $pluginsDir "terrascope"
+$dest       = Join-Path $pluginsDir "terranova"
 
 Write-Step "Target (QGIS$QgisMajor default profile)"
 Write-Ok "plugins dir: $pluginsDir"
@@ -113,8 +113,8 @@ if (-not (Test-Path $distIndex)) {
 }
 
 Write-Host ""
-Write-Host "Done. Start QGIS — TerraScope should appear under Plugins -> Installed." -ForegroundColor Green
+Write-Host "Done. Start QGIS — Terranova should appear under Plugins -> Installed." -ForegroundColor Green
 Write-Host "From now on:" -ForegroundColor Green
 Write-Host "  cd $RepoRoot; git pull            # for Python changes" -ForegroundColor Green
-Write-Host "  cd src\terrascope\ui_web; npm run build   # only if ui_web/ changed" -ForegroundColor Green
+Write-Host "  cd src\terranova\ui_web; npm run build   # only if ui_web/ changed" -ForegroundColor Green
 Write-Host "Then restart QGIS." -ForegroundColor Green

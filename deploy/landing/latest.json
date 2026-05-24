@@ -1,9 +1,9 @@
 {
   "version": "0.1.0",
-  "release_notes_url": "https://github.com/terrascope-rs/terrascope/releases/tag/v0.1.0",
+  "release_notes_url": "https://github.com/terranova-rs/terranova/releases/tag/v0.1.0",
   "minimum_qgis": "3.40",
   "downloads": {
-    "qgis_plugin_manager": "https://plugins.qgis.org/plugins/terrascope/",
-    "zip": "https://github.com/terrascope-rs/terrascope/releases/latest/download/terrascope.zip"
+    "qgis_plugin_manager": "https://plugins.qgis.org/plugins/terranova/",
+    "zip": "https://github.com/terranova-rs/terranova/releases/latest/download/terranova.zip"
   }
 }

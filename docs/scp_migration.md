@@ -1,12 +1,12 @@
 # Coming from SCP?
 
-If you have been using the Semi-Automatic Classification Plugin (SCP), most of what you know transfers directly. The table below maps every major SCP feature to its TerraScope equivalent.
+If you have been using the Semi-Automatic Classification Plugin (SCP), most of what you know transfers directly. The table below maps every major SCP feature to its Terranova equivalent.
 
 ## Concept mapping
 
-| SCP concept | SCP location | TerraScope equivalent |
+| SCP concept | SCP location | Terranova equivalent |
 |-------------|--------------|-----------------------|
-| Band set | "Band set" tab in the SCP dock | **Band Set** in the Project Explorer; persisted in `terrascope.json` rather than a bespoke `.scp` file. |
+| Band set | "Band set" tab in the SCP dock | **Band Set** in the Project Explorer; persisted in `terranova.json` rather than a bespoke `.scp` file. |
 | ROI / training input | "Training input" tab; saved as `.scp` zip | A GeoPackage layer with a class field. Drawn ROIs feed the same layer. |
 | Region growing | SCP working toolbar "+ROI" button | Toolbar → ROI seed tool; runs `core.roi.region_grow` with selectable euclidean / spectral-angle metric. |
 | Classification preview | Preview button | Live preview kicks in automatically while a wizard step is open (256×256 patch, warm task). |
@@ -25,22 +25,22 @@ If you have been using the Semi-Automatic Classification Plugin (SCP), most of w
 
 ## "Where do I click?"
 
-| Old SCP click | TerraScope click |
+| Old SCP click | Terranova click |
 |---------------|------------------|
-| **Plugins → Semi-Automatic Classification Plugin** | **Plugins → TerraScope** (toolbar icon) |
+| **Plugins → Semi-Automatic Classification Plugin** | **Plugins → Terranova** (toolbar icon) |
 | "Working toolbar" (cryptic floating bar) | Top-of-dock toolbar, plus `Ctrl+K` command palette |
-| `.scp` project file | `terrascope.json` next to your `.qgz` (JSON, diff-friendly) |
+| `.scp` project file | `terranova.json` next to your `.qgz` (JSON, diff-friendly) |
 | "Run" green button | `Enter` on the active wizard step, or palette → "Run classification" |
 
 ## File-format compatibility
 
-We can read SCP's band-set files and training `.scp` archives at import time (planned for v0.3) — until then, recreate band sets by selecting the raster files in TerraScope's Band Set dialog, and re-import training data from the original GeoPackage / shapefile.
+We can read SCP's band-set files and training `.scp` archives at import time (planned for v0.3) — until then, recreate band sets by selecting the raster files in Terranova's Band Set dialog, and re-import training data from the original GeoPackage / shapefile.
 
 ## What we deliberately do *not* port
 
 - **The "Working toolbar".** Its functions live in the main dock and the command palette.
-- **Anaconda-specific install paths.** TerraScope uses the bundled QGIS Python; if you need extra deps, install into the OSGeo4W shell on Windows or `python3 -m pip install` from the QGIS Python console.
-- **The cryptic `.scp` archive format.** All TerraScope artefacts are plain GeoPackages, COGs, JSON, and pickles you can inspect with standard tools.
+- **Anaconda-specific install paths.** Terranova uses the bundled QGIS Python; if you need extra deps, install into the OSGeo4W shell on Windows or `python3 -m pip install` from the QGIS Python console.
+- **The cryptic `.scp` archive format.** All Terranova artefacts are plain GeoPackages, COGs, JSON, and pickles you can inspect with standard tools.
 
 ## Switching tips
 

@@ -30,8 +30,8 @@ Thumbs.db
 
 # Node / web tier
 node_modules/
-src/terrascope/ui_web/node_modules/
-src/terrascope/ui_web/dist/
+src/terranova/ui_web/node_modules/
+src/terranova/ui_web/dist/
 deploy/cloudflare-worker/node_modules/
 deploy/cloudflare-worker/.wrangler/
 *.tsbuildinfo
@@ -54,4 +54,4 @@ site/
 installation_id
 
 # Packaging artefacts
-terrascope-*.zip
+terranova-*.zip

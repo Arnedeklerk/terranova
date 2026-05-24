@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sync version strings across metadata.txt, pyproject.toml, and version.py.
 
-Source of truth: ``src/terrascope/version.py``.
+Source of truth: ``src/terranova/version.py``.
 
 Usage:
     python scripts/sync_version.py             # check (exits 1 on mismatch)
@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION_PY = ROOT / "src" / "terrascope" / "version.py"
+VERSION_PY = ROOT / "src" / "terranova" / "version.py"
 METADATA = ROOT / "metadata.txt"
 PYPROJECT = ROOT / "pyproject.toml"
 

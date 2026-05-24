@@ -1,6 +1,6 @@
 line-length = 100
 target-version = "py311"
-extend-exclude = ["src/terrascope/ui_web/dist", "src/terrascope/ui/resources_rc.py"]
+extend-exclude = ["src/terranova/ui_web/dist", "src/terranova/ui/resources_rc.py"]
 
 [lint]
 select = [
@@ -29,7 +29,7 @@ ignore = [
 
 [lint.per-file-ignores]
 "tests/**" = ["PLR2004", "S101"]
-"src/terrascope/processing/**" = ["PLR0913"]
+"src/terranova/processing/**" = ["PLR0913"]
 
 [format]
 quote-style = "double"

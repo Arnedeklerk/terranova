@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.core.utils.hashing import file_hash, short_hash
+from terranova.core.utils.hashing import file_hash, short_hash
 
 pytestmark = pytest.mark.unit
 

@@ -39,7 +39,7 @@ function makeEnv(): Env {
 }
 
 function post(body: unknown): Request {
-  return new Request("https://t.terrascope.app/v1/events", {
+  return new Request("https://t.terranova.app/v1/events", {
     method: "POST",
     headers: { "content-type": "application/json", "CF-Connecting-IP": "203.0.113.1" },
     body: JSON.stringify(body),
@@ -81,7 +81,7 @@ describe("telemetry worker", () => {
 
   it("404s on other paths", async () => {
     const r = await worker.fetch(
-      new Request("https://t.terrascope.app/admin", { method: "POST" }),
+      new Request("https://t.terranova.app/admin", { method: "POST" }),
       makeEnv(),
       {} as ExecutionContext,
     );
@@ -90,7 +90,7 @@ describe("telemetry worker", () => {
 
   it("healthz returns 200", async () => {
     const r = await worker.fetch(
-      new Request("https://t.terrascope.app/healthz"),
+      new Request("https://t.terranova.app/healthz"),
       makeEnv(),
       {} as ExecutionContext,
     );

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.cli.main import build_parser
+from terranova.cli.main import build_parser
 
 pytestmark = pytest.mark.unit
 
@@ -15,7 +15,7 @@ def test_help_does_not_crash(capsys) -> None:  # type: ignore[no-untyped-def]
         parser.parse_args(["--help"])
     assert exc.value.code == 0
     captured = capsys.readouterr()
-    assert "terrascope" in captured.out
+    assert "terranova" in captured.out
     assert "ndvi" in captured.out
 
 

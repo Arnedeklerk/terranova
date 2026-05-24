@@ -6,13 +6,13 @@ Until v1.0, only the latest released version is supported with security fixes.
 
 ## Reporting a vulnerability
 
-Please email **security@terrascope.app** rather than filing a public issue. We aim to acknowledge within 72 hours and provide an initial assessment within 7 days.
+Please email **security@terranova.app** rather than filing a public issue. We aim to acknowledge within 72 hours and provide an initial assessment within 7 days.
 
 Please include:
 
 - A clear description of the issue.
 - Reproduction steps and any proof-of-concept code.
-- The version of TerraScope, QGIS, and Python you tested against.
+- The version of Terranova, QGIS, and Python you tested against.
 - Any suggested mitigation.
 
 We coordinate disclosure: typical timeline is a fix on a private branch, a release with the fix, and an advisory published within 90 days of the original report.
@@ -21,8 +21,8 @@ We coordinate disclosure: typical timeline is a fix on a private branch, a relea
 
 In scope:
 
-- The plugin's Python code under `src/terrascope/`.
-- The embedded web tier under `src/terrascope/ui_web/src/`.
+- The plugin's Python code under `src/terranova/`.
+- The embedded web tier under `src/terranova/ui_web/src/`.
 - The QWebChannel bridge between them.
 - Recipes (`recipes/`) and sample data (`samples/`).
 

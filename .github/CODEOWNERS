@@ -1,15 +1,15 @@
-# TerraScope codeowners — auto-requested as reviewers on touched files.
+# Terranova codeowners — auto-requested as reviewers on touched files.
 
 # Default owners for everything in the repo.
 *           @ColeBattell @arnedeklerk
 
 # Pure-Python domain — strictest review.
-/src/terrascope/core/      @arnedeklerk
+/src/terranova/core/      @arnedeklerk
 
 # UI & web tier.
-/src/terrascope/ui/        @ColeBattell @arnedeklerk
-/src/terrascope/ui_web/    @ColeBattell
+/src/terranova/ui/        @ColeBattell @arnedeklerk
+/src/terranova/ui_web/    @ColeBattell
 
 # Privacy & telemetry — both authors must sign off.
 /PRIVACY.md                @ColeBattell @arnedeklerk
-/src/terrascope/core/telemetry/  @ColeBattell @arnedeklerk
+/src/terranova/core/telemetry/  @ColeBattell @arnedeklerk

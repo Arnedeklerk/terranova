@@ -1,4 +1,4 @@
-# HANDOFF — TerraScope
+# HANDOFF — Terranova
 
 **Last update:** 2026-05-23
 **Phase:** 0 — prototype skeleton (heavily fleshed out toward Phase 1)
@@ -18,9 +18,9 @@ CLI with 5 subcommands.
 - `scripts/sync_version.py` keeps `version.py`, `metadata.txt`, and `pyproject.toml` in sync.
 
 ### Plugin lifecycle
-- `classFactory`, `TerraScopePlugin`, dock toggle, Processing-provider registration + unregister.
-- `terrascope.config` per-user settings module.
-- `terrascope.version` single source of truth.
+- `classFactory`, `TerranovaPlugin`, dock toggle, Processing-provider registration + unregister.
+- `terranova.config` per-user settings module.
+- `terranova.version` single source of truth.
 
 ### Pure-Python domain (`core/*`) — 14 sub-packages, ~50 modules
 - Pydantic v2 state models: `BBox`, `DateRange`, `CatalogSearch`, `ClassifierConfig`, `LedgerEntry`, `TelemetryEvent`, `CommandMessage`, `CommandResult`.
@@ -51,7 +51,7 @@ CLI with 5 subcommands.
 - `core.io.reproject` — match-to-template reprojection.
 - `core.recipes.loader` — Pydantic-validated YAML recipe loader.
 - `core.viz.figures` — matplotlib confusion-matrix + spectral-signatures plot.
-- `core.errors` — `TerraScopeError` exception hierarchy.
+- `core.errors` — `TerranovaError` exception hierarchy.
 - `core.timeseries.landtrendr` — numpy-only piecewise-linear segmentation.
 - `core.timeseries.bfast.detect_breaks_cusum` — dependency-free CuSum fallback.
 
@@ -62,8 +62,8 @@ CLI with 5 subcommands.
 - `tasks.cube_task.BuildCubeTask` — odc-stac → Zarr (real-but-minimal body, Phase 3 expands).
 
 ### Processing algorithms
-- `terrascope:ndvi`, `terrascope:ndwi`, `terrascope:ndmi`, `terrascope:nbr`, `terrascope:ndsi`
-- `terrascope:majority_filter`, `terrascope:sieve`
+- `terranova:ndvi`, `terranova:ndwi`, `terranova:ndmi`, `terranova:nbr`, `terranova:ndsi`
+- `terranova:majority_filter`, `terranova:sieve`
 
 ### Native Qt UI
 - Dock with embedded React panel; graceful fallback when QtWebEngine absent or web bundle missing.
@@ -95,12 +95,12 @@ CLI with 5 subcommands.
 - `crop_classification.yaml`, `deforestation_alert.yaml`.
 
 ### CLI
-- `terrascope ndvi`, `terrascope index <kind>`, `terrascope search-s2`, `terrascope accuracy-report`, `terrascope validate-cog`.
+- `terranova ndvi`, `terranova index <kind>`, `terranova search-s2`, `terranova accuracy-report`, `terranova validate-cog`.
 
 ## Open / next steps
 
 - [ ] Spike the QWebEngine bridge as a 1-day proof-of-concept on QGIS 3.40 LTR on Linux + Windows + macOS.
-- [ ] Reserve `terrascope.app` and create the `terrascope-rs` GitHub org; MX for `arne@terrascope.app`.
+- [ ] Reserve `terranova.app` and create the `terranova-rs` GitHub org; MX for `arne@terranova.app`.
 - [ ] Set up Cloudflare Pages + Workers KV store for telemetry endpoint.
 - [ ] Phase 1: full Catalogue-Search Qt dialog wiring; classification workflow end-to-end; PDF report from a real classification.
 - [ ] Phase 2: TerraTorch path for Prithvi fine-tune; SAM 3 prompts.
@@ -110,17 +110,17 @@ CLI with 5 subcommands.
 
 - PyQt6 (QGIS 4.x bundles PyQt6).
 - GPL-3-or-later (plugins.qgis.org + qfluentwidgets compatible).
-- Domain layer publishable separately later — possibly as `terrascope-core` on PyPI.
+- Domain layer publishable separately later — possibly as `terranova-core` on PyPI.
 - Default colour ramps: cmcrameri `cmc.batlow` / `cmc.vik`.
 - Telemetry: opt-in, six documented fields, nothing else. Test enforces.
 
 ## How to verify
 
 ```bash
-cd C:\CODE\GIS\terrascope
+cd C:\CODE\GIS\terranova
 uv sync --dev
 ruff check .
-mypy src/terrascope
+mypy src/terranova
 pytest -m unit
 ```
 

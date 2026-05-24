@@ -23,7 +23,7 @@ any sections that don't apply.
 
 ## Architectural rules (ticked = followed)
 
-- [ ] No `qgis.*` / `PyQt*` imports added under `src/terrascope/core/**`
+- [ ] No `qgis.*` / `PyQt*` imports added under `src/terranova/core/**`
 - [ ] Long-running work uses `QgsTask`
 - [ ] Bridge actions validated by Pydantic
 - [ ] Telemetry payload (if touched) still matches PRIVACY.md

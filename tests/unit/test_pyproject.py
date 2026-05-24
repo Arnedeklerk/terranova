@@ -30,7 +30,7 @@ def test_parseable() -> None:
 def test_project_metadata() -> None:
     d = _data()
     proj = d["project"]
-    assert proj["name"] == "terrascope"
+    assert proj["name"] == "terranova"
     assert proj["version"]
     assert proj["requires-python"]
     assert proj["license"]["text"].startswith("GPL")
@@ -46,11 +46,11 @@ def test_optional_dependency_groups_present() -> None:
 
 def test_cli_entry_point_present() -> None:
     d = _data()
-    assert d["project"]["scripts"]["terrascope"] == "terrascope.cli:main"
+    assert d["project"]["scripts"]["terranova"] == "terranova.cli:main"
 
 
 def test_version_matches_version_py() -> None:
-    from terrascope.version import __version__
+    from terranova.version import __version__
 
     d = _data()
     assert d["project"]["version"] == __version__

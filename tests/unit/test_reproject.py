@@ -7,7 +7,7 @@ import pytest
 
 rasterio = pytest.importorskip("rasterio")
 
-from terrascope.core.io import reproject_to_match  # noqa: E402
+from terranova.core.io import reproject_to_match  # noqa: E402
 
 pytestmark = pytest.mark.unit
 

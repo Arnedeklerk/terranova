@@ -70,11 +70,11 @@ jobs:
         with:
           node-version: "20"
       - name: Install
-        working-directory: src/terrascope/ui_web
+        working-directory: src/terranova/ui_web
         run: npm ci || npm install
       - name: Typecheck
-        working-directory: src/terrascope/ui_web
+        working-directory: src/terranova/ui_web
         run: npm run typecheck
       - name: Build
-        working-directory: src/terrascope/ui_web
+        working-directory: src/terranova/ui_web
         run: npm run build

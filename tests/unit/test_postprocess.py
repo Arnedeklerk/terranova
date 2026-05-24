@@ -7,7 +7,7 @@ import pytest
 
 scipy = pytest.importorskip("scipy")
 
-from terrascope.core.ml.postprocess import majority_filter, reclassify, sieve  # noqa: E402
+from terranova.core.ml.postprocess import majority_filter, reclassify, sieve  # noqa: E402
 
 pytestmark = pytest.mark.unit
 

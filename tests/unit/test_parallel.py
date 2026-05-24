@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from terrascope.core.utils.parallel import map_chunks
+from terranova.core.utils.parallel import map_chunks
 
 pytestmark = pytest.mark.unit
 

@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: "20"
       - name: Audit
-        working-directory: src/terrascope/ui_web
+        working-directory: src/terranova/ui_web
         run: |
           npm install --package-lock-only
           npm audit --audit-level=high || true

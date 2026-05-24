@@ -1,4 +1,4 @@
-"""Smoke test — does ``import terrascope`` and ``classFactory`` work in a QGIS host?
+"""Smoke test — does ``import terranova`` and ``classFactory`` work in a QGIS host?
 
 Marked ``@pytest.mark.qgis`` so it is opt-in via ``pytest --runqgis`` (CI on
 the QGIS matrix runners passes the flag).
@@ -12,19 +12,19 @@ pytestmark = [pytest.mark.qgis, pytest.mark.integration]
 
 
 def test_import_module() -> None:
-    import terrascope
+    import terranova
 
-    assert terrascope.__version__
+    assert terranova.__version__
 
 
 def test_class_factory_returns_plugin() -> None:
     pytest.importorskip("qgis.core")
     from unittest.mock import MagicMock
 
-    import terrascope
+    import terranova
 
     iface = MagicMock()
-    plugin = terrascope.classFactory(iface)
+    plugin = terranova.classFactory(iface)
     assert plugin is not None
     # initGui / unload exist
     assert hasattr(plugin, "initGui")

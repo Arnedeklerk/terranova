@@ -1,4 +1,4 @@
-"""Architectural guard — ``src/terrascope/core/**`` must not import QGIS or Qt.
+"""Architectural guard — ``src/terranova/core/**`` must not import QGIS or Qt.
 
 The domain layer's whole point is to be headlessly testable.  This test scans
 every ``.py`` file under ``core/`` and fails if any of them mention the
@@ -15,7 +15,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-CORE_DIR = Path(__file__).resolve().parents[2] / "src" / "terrascope" / "core"
+CORE_DIR = Path(__file__).resolve().parents[2] / "src" / "terranova" / "core"
 BANNED_TOP_LEVELS = {"qgis", "PyQt5", "PyQt6", "PySide2", "PySide6"}
 
 

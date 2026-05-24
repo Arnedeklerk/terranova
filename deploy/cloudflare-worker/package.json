@@ -1,8 +1,8 @@
 {
-  "name": "terrascope-telemetry",
+  "name": "terranova-telemetry",
   "version": "0.1.0",
   "private": true,
-  "description": "Cloudflare Worker receiving TerraScope opt-in telemetry. Stores events to Workers KV with 30-day raw retention per PRIVACY.md.",
+  "description": "Cloudflare Worker receiving Terranova opt-in telemetry. Stores events to Workers KV with 30-day raw retention per PRIVACY.md.",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

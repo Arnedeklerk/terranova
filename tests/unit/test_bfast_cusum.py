@@ -7,7 +7,7 @@ import pytest
 
 xr = pytest.importorskip("xarray")
 
-from terrascope.core.timeseries.bfast import detect_breaks_cusum  # noqa: E402
+from terranova.core.timeseries.bfast import detect_breaks_cusum  # noqa: E402
 
 pytestmark = pytest.mark.unit
 

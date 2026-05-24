@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from terrascope.core.models import (
+from terranova.core.models import (
     BBox,
     CatalogSearch,
     ClassifierConfig,

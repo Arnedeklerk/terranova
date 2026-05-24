@@ -1,4 +1,4 @@
-# TerraScope telemetry — Cloudflare Worker
+# Terranova telemetry — Cloudflare Worker
 
 Single endpoint `POST /v1/events` that receives opt-in telemetry from the
 QGIS plugin.  Stores events to a Workers KV namespace with 30-day raw
@@ -38,11 +38,11 @@ npm run deploy
 
 ## Custom domain
 
-Configure `t.terrascope.app` to point at this worker via the Cloudflare
+Configure `t.terranova.app` to point at this worker via the Cloudflare
 dashboard:
 
-1. Workers & Pages → `terrascope-telemetry` → Triggers → Custom Domains.
-2. Add `t.terrascope.app`.  Cloudflare provisions the TLS certificate.
+1. Workers & Pages → `terranova-telemetry` → Triggers → Custom Domains.
+2. Add `t.terranova.app`.  Cloudflare provisions the TLS certificate.
 
 ## Rate limiting
 

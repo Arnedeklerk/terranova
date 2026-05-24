@@ -1,7 +1,7 @@
-site_name: TerraScope
+site_name: Terranova
 site_description: A modern QGIS plugin for semi-automatic classification and change detection.
-site_url: https://docs.terrascope.app
-repo_url: https://github.com/terrascope-rs/terrascope
+site_url: https://docs.terranova.app
+repo_url: https://github.com/terranova-rs/terranova
 edit_uri: edit/main/docs/
 
 theme:

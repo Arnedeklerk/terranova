@@ -10,8 +10,8 @@ from uuid import UUID
 
 import pytest
 
-from terrascope.core.telemetry.client import build_payload, inspect_next_payload
-from terrascope.core.telemetry.settings import TelemetryDecision, TelemetrySettings
+from terranova.core.telemetry.client import build_payload, inspect_next_payload
+from terranova.core.telemetry.settings import TelemetryDecision, TelemetrySettings
 
 pytestmark = pytest.mark.unit
 
@@ -57,7 +57,7 @@ def test_inspect_does_not_send(monkeypatch) -> None:  # type: ignore[no-untyped-
     """The inspector path must never touch the network."""
     calls: list = []
     monkeypatch.setattr(
-        "terrascope.core.telemetry.client._post", lambda *a, **k: calls.append(a)
+        "terranova.core.telemetry.client._post", lambda *a, **k: calls.append(a)
     )
     inspect_next_payload("test.event")
     assert calls == []
@@ -69,7 +69,7 @@ def test_settings_default_is_not_asked() -> None:
 
 
 def test_emit_is_noop_when_opted_out(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    from terrascope.core.telemetry import client
+    from terranova.core.telemetry import client
 
     sent: list = []
 
@@ -88,7 +88,7 @@ def test_emit_is_noop_when_opted_out(monkeypatch) -> None:  # type: ignore[no-un
 
 
 def test_emit_is_noop_when_not_asked(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    from terrascope.core.telemetry import client
+    from terranova.core.telemetry import client
 
     sent: list = []
     monkeypatch.setattr(client, "_post", lambda *a, **k: sent.append(a))
