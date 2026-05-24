@@ -54,6 +54,12 @@ class TerraScopeDock(QDockWidget):
             return container
 
         view = QWebEngineView(container)
+        # Loading via file:// triggers Chromium's "local content can't
+        # touch the internet" rule by default — fine for our own JS, fatal
+        # for Leaflet's OSM tile fetches.  Enable the two settings that
+        # let our bundle reach https:// resources.  PyQt6 nests the enum
+        # under WebAttribute; PyQt5 has it flat.
+        _enable_remote_content(view.settings())
         channel = QWebChannel(view.page())
         channel.registerObject("bridge", self.bridge)
         view.page().setWebChannel(channel)
@@ -87,3 +93,37 @@ class TerraScopeDock(QDockWidget):
         msg.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         msg.setMargin(16)
         return msg
+
+
+def _enable_remote_content(settings: object) -> None:
+    """Let file://-loaded HTML fetch https:// resources.
+
+    Needed by Leaflet (OSM tile PNGs over HTTPS).  Without this, Chromium
+    treats the dock's local HTML as untrusted-relative-to-the-internet
+    and silently drops the tile image requests — the user sees a blank
+    grey map area.
+
+    PyQt5 exposes the enum flat (``QWebEngineSettings.X``); PyQt6 nests
+    it under ``WebAttribute``.  We attempt both and shrug on failure
+    since the dock still works without tiles.
+    """
+    try:
+        from qgis.PyQt.QtWebEngineCore import QWebEngineSettings  # type: ignore[import-not-found]
+    except ImportError:
+        try:
+            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings  # type: ignore[import-not-found,no-redef]
+        except ImportError:
+            return
+
+    attr_holder = getattr(QWebEngineSettings, "WebAttribute", QWebEngineSettings)
+    for name in (
+        "LocalContentCanAccessRemoteUrls",
+        "LocalContentCanAccessFileUrls",
+    ):
+        attr = getattr(attr_holder, name, None)
+        if attr is None:
+            continue
+        try:
+            settings.setAttribute(attr, True)  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001
+            pass
