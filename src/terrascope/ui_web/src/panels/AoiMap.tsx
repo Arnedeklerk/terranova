@@ -284,24 +284,31 @@ export function AoiMap({
             dashed = AOI, coloured fills = ticked scene footprints.
           </span>
           <div className="flex items-center gap-2">
-            <label
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded cursor-pointer select-none"
-              title="When ON, downloaded scenes are cropped to your AOI rectangle. When OFF (default), the full scene tile is downloaded — much larger files, but you keep all pixels."
-            >
-              <input
-                type="checkbox"
-                checked={maskToAoi}
-                onChange={(e) => onMaskToAoiChange(e.target.checked)}
-              />
-              Mask to AOI
-            </label>
-            <button
-              onClick={startDrawing}
-              className="px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded"
-              title="Click then drag on the map to draw a rectangle"
-            >
-              Draw AOI
-            </button>
+            {/* AOI controls — Mask and Draw are visually grouped in a
+                single segmented bar to signal that Mask is a modifier
+                of the AOI workflow (it only matters if the AOI is set).
+                Expand stays separate because it's a viewport concern,
+                not an AOI concern. */}
+            <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
+              <label
+                className="flex items-center gap-1.5 px-2.5 py-1 hover:bg-bg-0 cursor-pointer select-none border-r border-bg-2"
+                title="Mask to AOI — when ON, downloaded scenes are cropped to the AOI rectangle. When OFF (default), the full scene tile is downloaded; much larger files, but you keep every pixel the scene covers."
+              >
+                <input
+                  type="checkbox"
+                  checked={maskToAoi}
+                  onChange={(e) => onMaskToAoiChange(e.target.checked)}
+                />
+                Mask
+              </label>
+              <button
+                onClick={startDrawing}
+                className="px-2.5 py-1 hover:bg-bg-0"
+                title="Click then drag on the map to draw an AOI rectangle"
+              >
+                Draw AOI
+              </button>
+            </div>
             <button
               onClick={() => setExpanded((v) => !v)}
               className="px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded"

@@ -271,8 +271,11 @@ export function CatalogSearch() {
     }
   };
 
+  // Intentionally NOT max-w-2xl like the other panels — catalog is the one
+  // workflow whose value scales with available width (the embedded map
+  // needs room to breathe).  Let it grow to the dock edge.
   return (
-    <section className="max-w-2xl">
+    <section className="w-full">
       <h2 className="text-lg font-semibold mb-2">Catalogue search</h2>
 
       <div className="grid grid-cols-2 gap-3">
