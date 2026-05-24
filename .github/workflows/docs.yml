@@ -1,5 +1,10 @@
 name: Docs
 
+# Builds the MkDocs site on every push to main.  Deploying to GitHub Pages
+# is a separate job that only runs once you enable Pages on the repo
+# (Settings → Pages → Source: "GitHub Actions").  Without that, the deploy
+# step will fail — we leave it as workflow_dispatch only until you've turned
+# Pages on.
 on:
   push:
     branches: [main]
@@ -13,6 +18,7 @@ permissions:
 
 jobs:
   build:
+    name: Build site
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,14 +27,17 @@ jobs:
           python-version: "3.11"
       - name: Install MkDocs
         run: pip install mkdocs-material
-      - name: Build
+      - name: Build (strict)
         run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
   deploy:
+    name: Deploy to GitHub Pages
     needs: build
+    # Manual trigger only until Pages is enabled on the repo.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages

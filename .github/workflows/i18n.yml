@@ -1,26 +1,28 @@
 name: i18n
 
+# Manual trigger only until Crowdin is set up.  Once you have the
+# CROWDIN_PROJECT_ID and CROWDIN_PERSONAL_TOKEN repository secrets, add
+# back the `push:` trigger.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/terrascope/**/*.py"
-      - "src/terrascope/ui_web/src/**"
-      - "docs/**"
-      - "crowdin.yml"
   workflow_dispatch:
 
 jobs:
   sync:
     name: Sync sources & translations with Crowdin
     runs-on: ubuntu-latest
-    if: ${{ env.CROWDIN_PROJECT_ID != '' }}
-    env:
-      CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
-      CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
     steps:
+      - name: Check secrets are configured
+        run: |
+          if [ -z "${{ secrets.CROWDIN_PROJECT_ID }}" ]; then
+            echo "CROWDIN_PROJECT_ID is not set — skipping sync."
+            exit 0
+          fi
       - uses: actions/checkout@v4
       - uses: crowdin/github-action@v2
+        if: ${{ secrets.CROWDIN_PROJECT_ID != '' }}
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
         with:
           upload_sources: true
           upload_translations: false

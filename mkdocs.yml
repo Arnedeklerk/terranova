@@ -57,5 +57,5 @@ nav:
       - SAM segmentation: workflows/sam.md
   - API reference: api/index.md
   - Telemetry: telemetry.md
-  - Privacy: ../PRIVACY.md
-  - Changelog: ../CHANGELOG.md
+  # Privacy & Changelog live at the repo root rather than under docs/, so we
+  # link to the GitHub copies rather than including them as MkDocs pages.

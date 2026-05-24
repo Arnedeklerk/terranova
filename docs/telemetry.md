@@ -1,6 +1,6 @@
 # Telemetry
 
-TerraScope's telemetry is **opt-in**, **minimal**, and **inspectable**. The summary on this page is the same one in [PRIVACY.md](../PRIVACY.md), elaborated for readers who want to dig into the implementation.
+TerraScope's telemetry is **opt-in**, **minimal**, and **inspectable**. The summary on this page is the same one in [PRIVACY.md](https://github.com/Arnedeklerk/terrascope/blob/main/PRIVACY.md), elaborated for readers who want to dig into the implementation.
 
 ## What is sent
 
