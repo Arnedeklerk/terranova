@@ -5,6 +5,7 @@ import { Classify } from "./panels/Classify";
 import { Accuracy } from "./panels/Accuracy";
 import { TimeSeries } from "./panels/TimeSeries";
 import { Cdse } from "./panels/Cdse";
+import { Sam } from "./panels/Sam";
 import { CommandPalette } from "./panels/CommandPalette";
 import { TelemetryConsent } from "./panels/TelemetryConsent";
 import { useHotkey } from "./hooks/useHotkey";
@@ -70,13 +71,7 @@ export function App() {
         {view === "classify" && <Classify />}
         {view === "accuracy" && <Accuracy />}
         {view === "timeseries" && <TimeSeries />}
-        {view === "sam" && (
-          <PointerToMenu
-            name="SAM segmentation"
-            menuPath="Raster → TerraScope → Segment with SAM…"
-            description="Segment features using SAM 2 / SAM 3 with text or point prompts. The dialog opens from the main QGIS menu."
-          />
-        )}
+        {view === "sam" && <Sam />}
         {view === "foundation" && (
           <PointerToMenu
             name="Fine-tune foundation model"
