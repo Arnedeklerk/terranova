@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install TerraScope</title>
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link href="/styles.css" rel="stylesheet" />
+  </head>
+  <body class="bg-bg0 text-fg font-sans antialiased">
+    <header class="px-6 py-5 border-b border-bg2 flex items-center gap-4 max-w-6xl mx-auto">
+      <a href="/" class="flex items-center gap-3">
+        <img src="/icon.svg" alt="" width="32" height="32" />
+        <strong class="text-lg tracking-tight">TerraScope</strong>
+      </a>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-6 py-16">
+      <h1 class="text-4xl font-semibold tracking-tight">Install</h1>
+      <p class="text-fg-muted mt-4 text-lg">QGIS 3.40 LTR or any 4.x.</p>
+
+      <section class="mt-12">
+        <h2 class="text-xl font-semibold">From the QGIS Plugin Manager</h2>
+        <ol class="text-fg-muted mt-3 text-sm leading-relaxed">
+          <li>Open QGIS.</li>
+          <li><strong>Plugins → Manage and Install Plugins → All</strong>.</li>
+          <li>Search for <strong>TerraScope</strong>.</li>
+          <li>Click <strong>Install Plugin</strong>.</li>
+        </ol>
+      </section>
+
+      <section class="mt-12">
+        <h2 class="text-xl font-semibold">Optional extras</h2>
+        <p class="text-fg-muted mt-2 text-sm">
+          Foundation-model fine-tuning and SAM prompts need extra Python
+          packages. Install via the OSGeo4W shell:
+        </p>
+        <pre class="mt-3 p-4 bg-bg1 border border-bg2 rounded-md text-xs overflow-auto"><code>python -m pip install \
+  pystac-client planetary-computer odc-stac \
+  scikit-learn reportlab matplotlib \
+  segment-geospatial \
+  torch terratorch lightning \
+  zarr dask imageio-ffmpeg</code></pre>
+      </section>
+
+      <section class="mt-12">
+        <h2 class="text-xl font-semibold">From source</h2>
+        <pre class="mt-3 p-4 bg-bg1 border border-bg2 rounded-md text-xs overflow-auto"><code>git clone https://github.com/terrascope-rs/terrascope
+cd terrascope
+make ui-build
+make deploy</code></pre>
+        <p class="text-fg-muted mt-3 text-sm">
+          See the
+          <a class="text-accent hover:underline" href="https://docs.terrascope.app/development/"
+            >development guide</a
+          >
+          for the full setup.
+        </p>
+      </section>
+    </main>
+
+    <footer class="border-t border-bg2 mt-24 py-8 text-center text-xs text-fg-muted">
+      <a class="hover:text-fg" href="/">Home</a>
+      &nbsp;·&nbsp;
+      <a class="hover:text-fg" href="https://docs.terrascope.app">Docs</a>
+      &nbsp;·&nbsp;
+      <a class="hover:text-fg" href="https://github.com/terrascope-rs/terrascope">GitHub</a>
+    </footer>
+  </body>
+</html>

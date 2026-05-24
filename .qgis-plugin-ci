@@ -1,0 +1,20 @@
+# qgis-plugin-ci configuration — used by the release workflow to package
+# and (eventually) push to plugins.qgis.org.
+
+plugin_path: src/terrascope
+github_organization_slug: terrascope-rs
+project_slug: terrascope
+
+# We never want auto-generated translation pulls in this lockstep flow —
+# translations land in their own PRs.
+transifex_coordinator: ""
+transifex_organization: ""
+transifex_project: ""
+transifex_resource: ""
+
+# Files to include in the released .zip on top of the plugin_path.
+zip_extra_files:
+  - metadata.txt
+
+# Plugin repo for self-hosted builds (Phase 4).
+plugin_repo_url: ""

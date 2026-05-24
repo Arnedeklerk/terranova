@@ -1,0 +1,21 @@
+# Crowdin config — Phase 4.
+# Run with:  crowdin upload sources / crowdin download translations.
+project_id_env: CROWDIN_PROJECT_ID
+api_token_env:  CROWDIN_PERSONAL_TOKEN
+
+preserve_hierarchy: true
+
+files:
+  # Native Qt strings — pylupdate6 produces these from .py files.
+  - source: src/terrascope/i18n/terrascope.ts
+    translation: src/terrascope/i18n/terrascope_%locale_with_underscore%.ts
+
+  # Web tier strings — extracted by i18next-parser into one JSON per locale.
+  - source: src/terrascope/ui_web/src/i18n/en.json
+    translation: src/terrascope/ui_web/src/i18n/%locale%.json
+
+  # Documentation (MkDocs).  Per-page translation files.
+  - source: docs/**/*.md
+    translation: docs/i18n/%locale%/**/%original_file_name%
+    ignore:
+      - "docs/i18n/**"

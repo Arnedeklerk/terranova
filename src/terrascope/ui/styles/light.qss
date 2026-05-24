@@ -1,0 +1,49 @@
+/* TerraScope light theme — generated from tokens.yaml */
+
+QWidget {
+    background-color: #FFFFFF;
+    color: #0F1115;
+    font-family: "Inter", "Segoe UI Variable", "Segoe UI", -apple-system, sans-serif;
+    font-size: 13px;
+}
+
+QDockWidget { background-color: #F4F5F7; }
+QDockWidget::title {
+    background-color: #ECEEF1;
+    padding: 6px 10px;
+    border-bottom: 1px solid #D8DCE2;
+    color: #0F1115;
+}
+
+QPushButton {
+    background-color: #F4F5F7;
+    color: #0F1115;
+    border: 1px solid #D8DCE2;
+    border-radius: 6px;
+    padding: 6px 14px;
+}
+QPushButton:hover { background-color: #ECEEF1; }
+QPushButton:default {
+    background-color: #4F8AF7;
+    color: #FFFFFF;
+    border-color: #4F8AF7;
+}
+
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QPlainTextEdit, QTextEdit {
+    background-color: #FFFFFF;
+    color: #0F1115;
+    border: 1px solid #D8DCE2;
+    border-radius: 4px;
+    padding: 4px 8px;
+    selection-background-color: #4F8AF7;
+    selection-color: #FFFFFF;
+}
+
+QTreeView, QListView, QTableView {
+    background-color: #FFFFFF;
+    alternate-background-color: #F8F9FA;
+    selection-background-color: #4F8AF7;
+    selection-color: #FFFFFF;
+}
+
+QProgressBar::chunk { background-color: #4F8AF7; border-radius: 3px; }

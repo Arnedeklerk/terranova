@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TerraScope — classify Earth, gracefully.</title>
+    <meta
+      name="description"
+      content="A modern QGIS plugin for semi-automatic classification, foundation-model inference, and time-series change detection. STAC-first, COG everywhere, free and open source."
+    />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta property="og:title" content="TerraScope" />
+    <meta property="og:description" content="Classify Earth, gracefully." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://terrascope.app" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://terrascope.app" />
+    <link href="/styles.css" rel="stylesheet" />
+  </head>
+  <body class="bg-bg0 text-fg font-sans antialiased">
+    <header class="px-6 py-5 border-b border-bg2 flex items-center gap-4 max-w-6xl mx-auto">
+      <img src="/icon.svg" alt="" width="32" height="32" />
+      <strong class="text-lg tracking-tight">TerraScope</strong>
+      <nav class="ml-auto flex gap-6 text-sm text-fg-muted">
+        <a class="hover:text-fg" href="https://docs.terrascope.app">Docs</a>
+        <a class="hover:text-fg" href="https://github.com/terrascope-rs/terrascope">GitHub</a>
+        <a class="hover:text-fg" href="/install">Install</a>
+      </nav>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-6 py-16">
+      <h1 class="text-4xl font-semibold tracking-tight">Classify Earth, gracefully.</h1>
+      <p class="text-fg-muted mt-4 text-lg leading-relaxed">
+        A modern QGIS plugin for semi-automatic classification, foundation-model
+        inference, and time-series change detection. STAC-first, COG everywhere,
+        free and open source.
+      </p>
+
+      <div class="flex gap-3 mt-8">
+        <a
+          href="/install"
+          class="px-4 py-2 bg-accent text-white rounded-md text-sm font-medium hover:opacity-90"
+          >Install in QGIS</a
+        >
+        <a
+          href="https://github.com/terrascope-rs/terrascope"
+          class="px-4 py-2 bg-bg1 border border-bg2 rounded-md text-sm font-medium hover:bg-bg2"
+          >Source on GitHub</a
+        >
+      </div>
+
+      <hr class="border-bg2 my-16" />
+
+      <section>
+        <h2 class="text-xl font-semibold">What's in the box</h2>
+        <ul class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <li class="bg-bg1 border border-bg2 rounded-md p-4">
+            <strong>STAC search</strong> Planetary Computer, Earth Search, CDSE.
+            Lazy <code>xarray</code> stacks; download only what you need.
+          </li>
+          <li class="bg-bg1 border border-bg2 rounded-md p-4">
+            <strong>Classification</strong> Random Forest, LightGBM, XGBoost, MLP.
+            One-click accuracy PDF.
+          </li>
+          <li class="bg-bg1 border border-bg2 rounded-md p-4">
+            <strong>Foundation models</strong> Prithvi-EO-2.0, Clay v1.5,
+            TerraMind via TerraTorch. Export to ONNX.
+          </li>
+          <li class="bg-bg1 border border-bg2 rounded-md p-4">
+            <strong>SAM 3</strong> Text and click prompts via
+            <code>segment-geospatial</code>.
+          </li>
+          <li class="bg-bg1 border border-bg2 rounded-md p-4">
+            <strong>Time-series</strong> BFAST, LandTrendr, CCDC per-pixel.
+            MP4 export.
+          </li>
+          <li class="bg-bg1 border border-bg2 rounded-md p-4">
+            <strong>Modern UI</strong> Command palette, wizards, dark mode,
+            embedded React via QtWebEngine.
+          </li>
+        </ul>
+      </section>
+
+      <section class="mt-16">
+        <h2 class="text-xl font-semibold">Coming from SCP?</h2>
+        <p class="text-fg-muted mt-2 text-sm">
+          We kept SCP's feature surface and added everything modern Earth
+          observation needs.
+          <a
+            class="text-accent hover:underline"
+            href="https://docs.terrascope.app/scp_migration/"
+            >See the cheat sheet →</a
+          >
+        </p>
+      </section>
+
+      <section class="mt-16">
+        <h2 class="text-xl font-semibold">Privacy</h2>
+        <p class="text-fg-muted mt-2 text-sm">
+          Telemetry is off by default. If you opt in, we send six fields and
+          nothing else — event name, plugin version, QGIS version, OS, an
+          opaque installation id, and a timestamp. No imagery, no AOIs, no
+          file paths, no credentials, no IP addresses.
+          <a
+            class="text-accent hover:underline"
+            href="https://github.com/terrascope-rs/terrascope/blob/main/PRIVACY.md"
+            >Read the policy →</a
+          >
+        </p>
+      </section>
+    </main>
+
+    <footer class="border-t border-bg2 mt-24 py-8 text-center text-xs text-fg-muted">
+      <p>
+        Free and open source under
+        <a class="hover:text-fg" href="https://www.gnu.org/licenses/gpl-3.0.html"
+          >GPL-3</a
+        >. Built by Cole Battell &amp; Arné de Klerk.
+      </p>
+    </footer>
+  </body>
+</html>

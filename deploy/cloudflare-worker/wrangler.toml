@@ -1,0 +1,27 @@
+name = "terrascope-telemetry"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+account_id = ""  # fill from `wrangler whoami` after `wrangler login`
+
+# Custom domain: t.terrascope.app → this worker.  Set up via Cloudflare dash
+# (Workers & Pages → terrascope-telemetry → Triggers → Custom Domains) or via
+# the API; wrangler.toml route bindings would tie it to a zone we control.
+# routes = [
+#   { pattern = "t.terrascope.app/*", custom_domain = true }
+# ]
+
+[[kv_namespaces]]
+binding = "EVENTS"
+# Create with: wrangler kv namespace create EVENTS
+id = "REPLACE_WITH_KV_ID"
+preview_id = "REPLACE_WITH_KV_PREVIEW_ID"
+
+[vars]
+# Per-plugin per-IP rate limit window (seconds).  Tunable from the dashboard.
+RATE_LIMIT_WINDOW_S = "60"
+RATE_LIMIT_BURST = "30"
+# Whether to enforce 30-day raw retention (the privacy policy commits to this).
+RAW_RETENTION_DAYS = "30"
+
+[observability]
+enabled = true

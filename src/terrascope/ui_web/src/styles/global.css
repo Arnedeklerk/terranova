@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark light;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: theme("colors.bg.0");
+  color: theme("colors.fg.DEFAULT");
+}
+
+/* Selection follows the accent. */
+::selection {
+  background-color: theme("colors.accent");
+  color: white;
+}
+
+/* Tame the default focus ring in the embedded view but keep accessibility. */
+*:focus-visible {
+  outline: 2px solid theme("colors.accent");
+  outline-offset: 1px;
+  border-radius: 4px;
+}

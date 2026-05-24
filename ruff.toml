@@ -1,0 +1,36 @@
+line-length = 100
+target-version = "py311"
+extend-exclude = ["src/terrascope/ui_web/dist", "src/terrascope/ui/resources_rc.py"]
+
+[lint]
+select = [
+    "E", "F", "W",   # pycodestyle + pyflakes
+    "I",             # isort
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "C4",            # comprehensions
+    "SIM",           # simplify
+    "PL",            # pylint subset
+    "RUF",           # ruff-specific
+]
+ignore = [
+    "PLR0913",  # too many args (Pydantic/processing algs)
+    "PLR2004",  # magic numbers (geospatial constants are common)
+    "E501",     # long lines (covered by formatter)
+    "PLC0415",  # import-outside-top-level (deferred imports are deliberate
+                # in the domain layer — keeps the core importable without
+                # heavy deps installed)
+    "UP037",    # quoted annotations are required when imports are TYPE_CHECKING-gated
+    "PLR0911",  # too-many-return-statements (the dispatch tables benefit from early returns)
+    "PLR0912",  # too-many-branches (same)
+    "PLR0915",  # too-many-statements (Qt dialogs are big)
+    "UP042",    # str-enum: Pydantic v2 currently needs str + Enum mixin
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["PLR2004", "S101"]
+"src/terrascope/processing/**" = ["PLR0913"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 5
+    groups:
+      python-lint:
+        patterns: ["ruff*", "mypy*", "pytest*", "pre-commit*"]
+      pydantic-stack:
+        patterns: ["pydantic*"]
+      science:
+        patterns: ["numpy*", "scipy*", "scikit-learn*", "pandas*"]
+      geo:
+        patterns: ["rasterio*", "rioxarray*", "xarray*", "odc-*", "pystac*", "rio-*"]
+
+  - package-ecosystem: "npm"
+    directory: "/src/terrascope/ui_web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns: ["react*", "@radix-ui*"]
+      tooling:
+        patterns: ["vite*", "@vitejs*", "typescript*", "eslint*", "tailwind*", "postcss*", "autoprefixer*"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3

@@ -1,0 +1,30 @@
+# Force LF on all text files — keeps Windows checkouts consistent with CI.
+* text=auto eol=lf
+
+# Python / TS / docs.
+*.py text eol=lf
+*.pyi text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+
+# Binary-ish assets.
+*.png binary
+*.jpg binary
+*.tif binary
+*.tiff binary
+*.zip binary
+*.pdf binary
+*.onnx binary
+*.ckpt binary
+*.zarr binary
+*.qm binary
+
+# Linguist hints — don't let GitHub call this a JS project because of ui_web/.
+src/terrascope/ui_web/dist/** linguist-generated=true
+src/terrascope/i18n/*.qm linguist-generated=true

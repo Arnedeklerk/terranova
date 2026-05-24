@@ -1,0 +1,27 @@
+[general]
+name=TerraScope
+qgisMinimumVersion=3.40
+qgisMaximumVersion=4.99
+description=Modern semi-automatic classification, foundation-model inference, and time-series change detection for QGIS.
+about=TerraScope is a STAC-first, COG/xarray-powered QGIS plugin for Earth observation. It provides classical and deep-learning classification (Prithvi-EO-2.0, Clay, SAM 3 via TerraTorch), Sentinel/Landsat search and download from Planetary Computer / Earth Search / Copernicus Data Space, time-series change detection (BFAST, LandTrendr, CCDC), and a modern Fluent-style UI with optional embedded React panels via QtWebEngine. Free and open source under GPL-3.
+version=0.1.0
+author=Arne de Klerk, Cole Battell
+email=arne@knetminer.com
+homepage=https://terrascope.app
+repository=https://github.com/terrascope-rs/terrascope
+tracker=https://github.com/terrascope-rs/terrascope/issues
+icon=resources/icon.svg
+experimental=False
+deprecated=False
+hasProcessingProvider=yes
+tags=remote sensing, classification, machine learning, deep learning, sentinel, landsat, stac, change detection, time series, segment anything, prithvi, semi-automatic
+category=Raster
+license=GPL-3.0-or-later
+plugin_dependencies=
+changelog=
+    0.1.0 (2026-05-23)
+    - Phase 0 prototype skeleton.
+    - Plugin registers a TerraScope dock and welcome screen.
+    - Embedded QWebEngineView with React bridge demo.
+    - NDVI Processing algorithm.
+    - CI on Linux/Windows/macOS.

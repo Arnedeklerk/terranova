@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+.uv/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Node / web tier
+node_modules/
+src/terrascope/ui_web/node_modules/
+src/terrascope/ui_web/dist/
+deploy/cloudflare-worker/node_modules/
+deploy/cloudflare-worker/.wrangler/
+*.tsbuildinfo
+
+# Local IDE / Claude state — never push these
+.claude/
+CLAUDE.md
+
+# QGIS
+*.qgs~
+*.qgz~
+
+# Project state (do not commit user training data)
+*.zarr/
+samples/_local/
+docs/site/
+
+# Telemetry installation id (per-machine)
+installation_id
+
+# Packaging artefacts
+terrascope-*.zip

@@ -1,0 +1,41 @@
+# TerraScope recipe: deforestation alerts via BFAST on Sentinel-2 NDVI.
+
+name: Deforestation alerts (BFAST)
+description: |
+  Build an NDVI time-series cube over an AOI, run BFAST Lite per pixel from
+  the chosen monitoring start, and write a raster of break dates and
+  magnitudes.
+
+inputs:
+  aoi: { kind: vector, hint: "Polygon AOI" }
+  history_range: { kind: daterange, default: "2017-01-01/2023-12-31" }
+  monitor_start: { kind: date, default: "2024-01-01" }
+  max_cloud: { kind: int, default: 30 }
+
+steps:
+  - action: catalog.search
+    params:
+      endpoint: planetary_computer
+      collection: sentinel-2-l2a
+      bbox: "${aoi.bbox}"
+      datetime: "${history_range.start}/${end_of(now)}"
+      max_cloud: "${max_cloud}"
+
+  - action: timeseries.cube
+    params:
+      bands: [B04, B08]
+      cloud_mask: omnicloudmask
+      out_name: "ndvi_cube.zarr"
+
+  - action: timeseries.index
+    params:
+      index: NDVI
+      red: B04
+      nir: B08
+
+  - action: timeseries.bfast
+    params:
+      start_monitor: "${monitor_start}"
+      freq: 365
+      level: 0.05
+      output_name: "deforestation_breaks.tif"

@@ -1,0 +1,33 @@
+name: i18n
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/terrascope/**/*.py"
+      - "src/terrascope/ui_web/src/**"
+      - "docs/**"
+      - "crowdin.yml"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync sources & translations with Crowdin
+    runs-on: ubuntu-latest
+    if: ${{ env.CROWDIN_PROJECT_ID != '' }}
+    env:
+      CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+      CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_translations: true
+          localization_branch_name: i18n/sync
+          create_pull_request: true
+          pull_request_title: "i18n: sync translations from Crowdin"
+          pull_request_body: |
+            Automatic sync from the Crowdin project.  Review the diff for any
+            locale we want to flag as ready for the next release.

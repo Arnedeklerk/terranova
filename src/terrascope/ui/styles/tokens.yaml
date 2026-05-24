@@ -1,0 +1,39 @@
+# TerraScope design tokens.
+# Source of truth for both Qt QSS (generated to dark.qss / light.qss) and the
+# Tailwind theme used by the embedded React panel (see ui_web/tailwind.config.ts).
+
+colour:
+  bg.0:   "#0B0D10"   # canvas (dark)
+  bg.1:   "#14171C"   # surface
+  bg.2:   "#1C2027"   # elevated
+  fg.0:   "#E8ECF1"
+  fg.muted: "#8A93A0"
+  accent: "#4F8AF7"
+  success: "#3FB57E"
+  warn:    "#E6B450"
+  danger:  "#E5484D"
+
+# Perceptually uniform, CVD-friendly ramps (Crameri 2020).
+# Never default to jet/rainbow.
+ramp:
+  sequential:  "cmc.batlow"
+  diverging:   "cmc.vik"
+  cyclic:      "cmc.romaO"
+  categorical: "cmc.batlowS"
+
+typography:
+  font.ui:   "Inter, system-ui, -apple-system, 'Segoe UI Variable', sans-serif"
+  font.mono: "JetBrains Mono, Cascadia Code, Consolas, monospace"
+  size.xs:   11
+  size.sm:   12
+  size.md:   13
+  size.lg:   16
+  size.xl:   22
+
+radius:
+  sm: 4
+  md: 8
+  lg: 12
+
+spacing:
+  unit: 4

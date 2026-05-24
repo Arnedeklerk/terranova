@@ -1,0 +1,110 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "terrascope"
+version = "0.1.0"
+description = "A modern QGIS plugin for semi-automatic classification, foundation models, and time-series change detection."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "Arne de Klerk", email = "arne@knetminer.com" },
+    { name = "Cole Battell" },
+]
+keywords = ["qgis", "remote-sensing", "classification", "earth-observation", "stac"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+
+dependencies = [
+    "pydantic>=2.7",
+    "numpy>=1.26",
+    "pystac-client>=0.9",
+    "planetary-computer>=1.0",
+    "odc-stac>=0.3.10",
+    "rioxarray>=0.17",
+    "xarray>=2024.6",
+    "scikit-learn>=1.5",
+    "rio-cogeo>=5.3",
+    "spyndex>=0.6",
+    "reportlab>=4.2",
+    "pyyaml>=6.0",
+    "platformdirs>=4.2",
+    "rasterio>=1.3",
+    "fiona>=1.10",
+    "pyproj>=3.6",
+    "statsmodels>=0.14",
+    "matplotlib>=3.8",
+    "requests>=2.32",
+]
+
+[project.optional-dependencies]
+ml = [
+    "torch>=2.3",
+    "lightning>=2.3",
+    "terratorch>=0.2",
+    "segment-geospatial>=0.12",
+    "onnxruntime>=1.18",
+    "shap>=0.45",
+    "optuna>=3.6",
+    "imbalanced-learn>=0.12",
+    "lightgbm>=4.4",
+    "xgboost>=2.1",
+]
+gpu = [
+    "onnxruntime-gpu>=1.18",
+]
+timeseries = [
+    # Note: ``bfast`` is intentionally NOT here — its setup.py imports runtime
+    # code at build time (broken packaging) and it requires OpenCL drivers.
+    # The CuSum fallback in ``core.timeseries.bfast.detect_breaks_cusum``
+    # works without it.  Install separately with ``pip install bfast`` if you
+    # specifically want the GPU BFAST Lite path.
+    "zarr>=2.18",
+    "dask>=2024.6",
+    "imageio-ffmpeg>=0.5",
+    "imageio>=2.34",
+]
+bfast = [
+    "bfast>=0.7",  # OpenCL-dependent, broken setup.py on Windows; opt-in only
+]
+dev = [
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pytest>=8.3",
+    "pytest-qgis>=2.0",
+    "pytest-qt>=4.4",
+    "hypothesis>=6.111",
+    "pre-commit>=3.8",
+    "mkdocs-material>=9.5",
+    "qgis-plugin-ci>=2.8",
+]
+
+[project.scripts]
+terrascope = "terrascope.cli:main"
+
+[project.urls]
+Homepage = "https://terrascope.app"
+Repository = "https://github.com/terrascope-rs/terrascope"
+Issues = "https://github.com/terrascope-rs/terrascope/issues"
+Documentation = "https://docs.terrascope.app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/terrascope"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/terrascope",
+    "metadata.txt",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+]

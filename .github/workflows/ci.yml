@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-type:
+    name: Lint + Type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.x"
+      - name: Install
+        run: uv sync --dev
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Ruff format
+        run: uv run ruff format --check .
+      - name: Mypy
+        run: uv run mypy src/terrascope
+
+  unit-tests:
+    name: Unit tests (${{ matrix.os }} / py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: "pip"
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e .[dev]
+      - name: Pytest unit
+        run: pytest -m unit -v
+
+  web-build:
+    name: Build web tier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: src/terrascope/ui_web/package-lock.json
+      - name: Install
+        working-directory: src/terrascope/ui_web
+        run: npm ci || npm install
+      - name: Typecheck
+        working-directory: src/terrascope/ui_web
+        run: npm run typecheck
+      - name: Build
+        working-directory: src/terrascope/ui_web
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-dist
+          path: src/terrascope/ui_web/dist
+
+  qgis-tests:
+    name: QGIS integration (${{ matrix.qgis }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        qgis: ["release-3_40", "final-3_40_1"]
+    container:
+      image: qgis/qgis:${{ matrix.qgis }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          pip install -e .[dev]
+      - name: Run QGIS-host tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pytest -m qgis --runqgis -v || echo "QGIS tests are advisory in Phase 0"

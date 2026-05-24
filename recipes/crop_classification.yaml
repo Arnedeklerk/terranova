@@ -1,0 +1,47 @@
+# TerraScope recipe: crop classification on Sentinel-2 L2A.
+#
+# Recipes are loaded by the welcome screen and shown as one-click workflows.
+# Each step references a controller action exposed by terrascope.controllers.
+
+name: Crop classification (Sentinel-2)
+description: |
+  Classify field crops over a growing season using a single Sentinel-2 L2A
+  composite and a Random Forest trained on field-walked polygons.
+
+inputs:
+  aoi: { kind: vector, hint: "Polygon AOI" }
+  training: { kind: vector, hint: "Class field required" }
+  class_field: { kind: string, default: "class" }
+  date_range: { kind: daterange, default: "2024-04-01/2024-09-30" }
+  max_cloud: { kind: int, default: 20, min: 0, max: 100 }
+
+steps:
+  - action: catalog.search
+    params:
+      endpoint: planetary_computer
+      collection: sentinel-2-l2a
+      bbox: "${aoi.bbox}"
+      datetime: "${date_range}"
+      max_cloud: "${max_cloud}"
+
+  - action: stacking.composite
+    params:
+      method: median
+      cloud_mask: omnicloudmask
+      bands: [B02, B03, B04, B08, B11, B12]
+
+  - action: classify.train
+    params:
+      training: "${training}"
+      class_field: "${class_field}"
+      classifier: random_forest
+      n_estimators: 400
+      cv_folds: 5
+
+  - action: classify.predict
+    params:
+      output_name: "crops_${date_range}.tif"
+
+  - action: accuracy.report
+    params:
+      output_name: "crops_${date_range}_accuracy.pdf"
