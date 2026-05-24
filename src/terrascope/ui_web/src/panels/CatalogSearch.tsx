@@ -85,6 +85,10 @@ export function CatalogSearch() {
 
   const [downloadJobId, setDownloadJobId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  // Whether downloads should crop the scene raster to the search AOI.
+  // OFF by default — clipping behind the user's back was confusing.
+  // When ON, the rio.clip_box step in catalog.py runs after odc.stac.load.
+  const [maskToAoi, setMaskToAoi] = useState(false);
   // Per-item download status while a batch is running.
   const [batchProgress, setBatchProgress] = useState<{
     done: number;
@@ -340,6 +344,8 @@ export function CatalogSearch() {
           aoi={mapAoi}
           footprints={mapFootprints}
           onAoiChange={onMapAoiChange}
+          maskToAoi={maskToAoi}
+          onMaskToAoiChange={setMaskToAoi}
         />
       </div>
 
@@ -607,6 +613,7 @@ export function CatalogSearch() {
       item_id: it.id,
       bbox,
       out_path,
+      mask_to_aoi: maskToAoi,
     });
     if (dl.ok && dl.result?.job_id) {
       setDownloadJobId(dl.result.job_id);

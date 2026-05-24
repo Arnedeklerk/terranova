@@ -130,6 +130,9 @@ def download(payload: dict[str, Any]) -> dict[str, Any]:
         bands=list(payload.get("bands") or ["red", "green", "blue", "nir"]),
         resolution=int(payload.get("resolution", 10)),
         out_path=out_path,
+        # Default OFF — clipping silently was confusing.  The UI's
+        # "Mask to AOI" toggle in the map header sets this.
+        mask_to_aoi=bool(payload.get("mask_to_aoi", False)),
     )
     # Pin the Python reference BEFORE addTask — taskManager keeps only a
     # C++ side reference, so without this the QgsTask is garbage-collected
@@ -217,10 +220,22 @@ def _do_download(task: Any) -> bool:
         if task.isCanceled():
             return False
 
-        _emit(task, 50, "Clipping to AOI…")
-        cube = cube.rio.clip_box(*task.bbox, crs="EPSG:4326")
-        if task.isCanceled():
-            return False
+        if task.mask_to_aoi:
+            _emit(task, 50, "Clipping to AOI…")
+            cube = cube.rio.clip_box(*task.bbox, crs="EPSG:4326")
+            if task.isCanceled():
+                return False
+        else:
+            # Full-scene mode.  The pixel count can be ~10× the masked
+            # version; surface that in the status line so the user isn't
+            # surprised when the write step takes longer / produces a
+            # much larger GeoTIFF.
+            _emit(
+                task,
+                50,
+                "Mask to AOI is OFF — downloading the full scene tile "
+                "(this will be a much larger file).",
+            )
 
         _emit(task, 70, f"Downloading pixels + writing {task.out_path.name}…")
         task.out_path.parent.mkdir(parents=True, exist_ok=True)

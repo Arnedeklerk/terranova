@@ -44,9 +44,19 @@ interface Props {
   footprints: FootprintSpec[];
   /** Called when the user finishes drawing a new rectangle. */
   onAoiChange(b: Bbox): void;
+  /** Whether downloads should clip the scene raster to the AOI. */
+  maskToAoi: boolean;
+  /** Toggle handler for the "Mask to AOI" checkbox in the header. */
+  onMaskToAoiChange(v: boolean): void;
 }
 
-export function AoiMap({ aoi, footprints, onAoiChange }: Props) {
+export function AoiMap({
+  aoi,
+  footprints,
+  onAoiChange,
+  maskToAoi,
+  onMaskToAoiChange,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -273,7 +283,18 @@ export function AoiMap({ aoi, footprints, onAoiChange }: Props) {
             AOI map — draw a rectangle to set the search area.  Orange
             dashed = AOI, coloured fills = ticked scene footprints.
           </span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <label
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded cursor-pointer select-none"
+              title="When ON, downloaded scenes are cropped to your AOI rectangle. When OFF (default), the full scene tile is downloaded — much larger files, but you keep all pixels."
+            >
+              <input
+                type="checkbox"
+                checked={maskToAoi}
+                onChange={(e) => onMaskToAoiChange(e.target.checked)}
+              />
+              Mask to AOI
+            </label>
             <button
               onClick={startDrawing}
               className="px-2.5 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded"
