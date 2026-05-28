@@ -71,6 +71,16 @@ class Controllers:
         self._handlers["classify.run"] = _classify.run
         self._handlers["accuracy.run"] = _accuracy.run
         self._handlers["accuracy.generate_points"] = _accuracy.generate_points
+
+        # Interactive point-by-point labelling (the workflow that turns
+        # generated validation points into truth labels for the
+        # confusion matrix).
+        from . import labeling as _labeling
+
+        self._handlers["accuracy.label.start"] = _labeling.start
+        self._handlers["accuracy.label.update"] = _labeling.update
+        self._handlers["accuracy.label.pan_to"] = _labeling.pan_to
+        self._handlers["accuracy.label.clear"] = _labeling.clear
         self._handlers["timeseries.run"] = _timeseries.run
         self._handlers["cdse.signin"] = _cdse.signin
         self._handlers["cdse.status"] = _cdse.status
