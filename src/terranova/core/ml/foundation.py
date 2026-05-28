@@ -1,4 +1,4 @@
-"""Foundation-model fine-tuning via TerraTorch — Phase 2 real implementation.
+"""Foundation-model fine-tuning via TerraTorch real implementation.
 
 Wraps the three backbones the brief calls out: Prithvi-EO-2.0 (300M / 600M),
 Clay v1.5, and TerraMind.  Each fine-tunes a semantic-segmentation head on

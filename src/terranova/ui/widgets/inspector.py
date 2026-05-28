@@ -1,6 +1,6 @@
 """Bottom-dock inspector — spectral signature, pixel value readout, model info.
 
-Phase 1.  Stub for Phase 0.
+(planned).  Stub.
 """
 
 from __future__ import annotations

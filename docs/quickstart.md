@@ -26,7 +26,7 @@ make deploy
 
 On Windows substitute `make` with `nmake` or run the Makefile via Git Bash.
 
-## Phase 0 smoke test
+## Smoke test
 
 After installing:
 

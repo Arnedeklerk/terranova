@@ -24,7 +24,7 @@ jobs:
         run: pip install pip-audit
       - name: Audit
         run: pip-audit -r <(pip install -e . --dry-run --quiet 2>&1 || true) || true
-      # Phase 1: replace with `pip-audit --requirement requirements-lock.txt`.
+      # Planned: replace with `pip-audit --requirement requirements-lock.txt`.
 
   npm-audit:
     name: npm audit (web tier)

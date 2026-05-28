@@ -5,9 +5,9 @@ Terranova only ships samples that are licensed for redistribution.
 
 ## Currently bundled
 
-_None yet — Phase 1 will add the Khartoum demo._
+_None yet will add the Khartoum demo._
 
-## Planned (Phase 1)
+## Planned
 
 | File | Source | Licence | Notes |
 |------|--------|---------|-------|

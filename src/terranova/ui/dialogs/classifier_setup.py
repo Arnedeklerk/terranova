@@ -1,4 +1,4 @@
-"""Classification setup dialog — Phase 1.
+"""Classification setup dialog.
 
 Picks an input raster, a training vector layer + class field, a classifier
 kind, and an output COG path.  Runs the full ``extract → train → predict_to_cog``

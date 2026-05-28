@@ -47,9 +47,7 @@ nav:
   - Coming from SCP?: scp_migration.md
   - Architecture: architecture.md
   - Development: development.md
-  - Phase 4 deployment: phase4_deployment.md
   - Reviewer checklist: reviewer.md
-  - Risk register: risks.md
   - ML stack: ml.md
   - Recipes: recipes.md
   - CLI: cli.md

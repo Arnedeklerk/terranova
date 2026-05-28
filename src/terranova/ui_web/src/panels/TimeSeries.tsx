@@ -4,7 +4,7 @@ import { formatDMS, parseDMS } from "./dms";
 import { JobProgress } from "./JobProgress";
 
 /**
- * Time-series + change detection — Phase 3, parity with the Qt dialog.
+ * Time-series + change detection, parity with the Qt dialog.
  *
  * STAC search → cube → NDVI/NBR/NDMI → per-pixel change → break + magnitude
  * rasters + optional MP4 animation.

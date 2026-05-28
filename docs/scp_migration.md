@@ -11,16 +11,16 @@ If you have been using the Semi-Automatic Classification Plugin (SCP), most of w
 | Region growing | SCP working toolbar "+ROI" button | Toolbar → ROI seed tool; runs `core.roi.region_grow` with selectable euclidean / spectral-angle metric. |
 | Classification preview | Preview button | Live preview kicks in automatically while a wizard step is open (256×256 patch, warm task). |
 | Minimum Distance | Classification → Algorithm: MD | scikit-learn `KNeighborsClassifier(n_neighbors=1)` — wired but not the default. |
-| Maximum Likelihood | Classification → Algorithm: ML | `GaussianMixture` / `QuadraticDiscriminantAnalysis` (Phase 1, optional). |
-| Spectral Angle Mapping | Classification → Algorithm: SAM | Available as a custom metric in region growing; classifier port planned for Phase 2. |
+| Maximum Likelihood | Classification → Algorithm: ML | `GaussianMixture` / `QuadraticDiscriminantAnalysis` (optional). |
+| Spectral Angle Mapping | Classification → Algorithm: SAM | Available as a custom metric in region growing; classifier port planned for Future. |
 | Random Forest | Classification → Algorithm: RF | scikit-learn `RandomForestClassifier` (default). |
-| Land Cover Signature | LCS tab + sliders | Phase 1+: signature panel with draggable wavelength ranges. |
-| Cross-classification | "Cross classification" | Phase 1 Processing algorithm. |
-| Reclassification | "Reclassification" | Phase 1 Processing algorithm. |
+| Land Cover Signature | LCS tab + sliders | Planned: signature panel with draggable wavelength ranges. |
+| Cross-classification | "Cross classification" | Future Processing algorithm. |
+| Reclassification | "Reclassification" | Future Processing algorithm. |
 | Band Calc | "Band Calc" tab | QGIS Raster Calculator works as-is; native spyndex-powered "Indices" group also available. |
 | Image Conversion | "Preprocessing" / "Image conversion" tabs | Replaced by STAC search + lazy `xarray` stack; downloads are COGs and never block. |
 | Accuracy | "Accuracy" tab | Processing alg + one-click PDF report. |
-| Atmospheric correction (Sen2Cor) | Built-in | Phase 4 — for now we recommend ESA's Sen2Cor on L1C data, or just use L2A. |
+| Atmospheric correction (Sen2Cor) | Built-in | for now we recommend ESA's Sen2Cor on L1C data, or just use L2A. |
 | Direct Sentinel/Landsat download | "Download" tab | STAC search on Planetary Computer, Earth Search, or CDSE. Items become a lazy `xarray.DataArray`; download only what you need. |
 
 ## "Where do I click?"

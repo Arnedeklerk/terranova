@@ -1,8 +1,8 @@
 """Classical (sklearn-family) classifiers and the predict-to-COG path.
 
-Phase 0 ships ``build_estimator`` (which picks a sklearn / LightGBM / XGBoost
+Currently ships ``build_estimator`` (which picks a sklearn / LightGBM / XGBoost
 estimator from a :class:`ClassifierConfig`) and the shapes of ``train`` and
-``predict_to_cog``.  Phase 1 fleshes out the inference loop over dask blocks.
+``predict_to_cog``.  A future version fleshes out the inference loop over dask blocks.
 """
 
 from __future__ import annotations

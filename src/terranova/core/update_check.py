@@ -1,4 +1,4 @@
-"""Auto-update check — Phase 4.
+"""Auto-update check.
 
 Polls a small JSON file on terranova.app once per day, compares the
 ``latest`` version to the running one, and surfaces an info-message in the

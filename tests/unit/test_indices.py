@@ -1,4 +1,4 @@
-"""NDVI smoke tests — the Phase 0 algorithm."""
+"""NDVI smoke tests — the smoke-test algorithm."""
 
 from __future__ import annotations
 

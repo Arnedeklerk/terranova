@@ -1,4 +1,4 @@
-"""Foundation-model fine-tune dialog — Phase 2.
+"""Foundation-model fine-tune dialog.
 
 Wraps :func:`terranova.core.ml.foundation.finetune` with a Qt form.  The
 user supplies paired training rasters + mask rasters (typically one tile

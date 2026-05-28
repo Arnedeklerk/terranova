@@ -1,4 +1,4 @@
-"""SAM-prompted segmentation dialog — Phase 2.
+"""SAM-prompted segmentation dialog.
 
 Two prompt modes: text (Grounded-SAM-style) and points clicked on the canvas.
 Runs the segment-geospatial wrapper in a background task and writes a

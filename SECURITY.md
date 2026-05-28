@@ -38,6 +38,6 @@ The plugin processes user-supplied raster and vector data and makes outbound req
 
 - Public STAC catalogues (Planetary Computer, Earth Search, CDSE) over HTTPS.
 - The opt-in telemetry endpoint (see PRIVACY.md).
-- A user-configured update-check endpoint (Phase 4).
+- A user-configured update-check endpoint.
 
 The bridge between the embedded web view and Python validates every message with Pydantic before dispatch. The dispatch table is the only Python surface reachable from the web tier.

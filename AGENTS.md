@@ -94,15 +94,3 @@ make package            # build the .zip
 
 `metadata.txt`, `pyproject.toml`, and `src/terranova/version.py` must all
 match.  Bump via the release workflow, not by hand.
-
-## Phase plan (where this work fits)
-
-| Phase | Goal |
-|-------|------|
-| 0 | Skeleton, CI, web bridge, NDVI alg.  **<- you are here** |
-| 1 | STAC search + classical classification |
-| 2 | Foundation models + SAM |
-| 3 | Time-series + change detection |
-| 4 | Polish, i18n, public release |
-
-See `HANDOFF.md` for the rolling status note.

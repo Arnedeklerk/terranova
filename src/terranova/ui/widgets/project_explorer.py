@@ -1,6 +1,6 @@
 """Left-pane tree of band sets, training data, models and results.
 
-Phase 1.  Stub for Phase 0.
+(planned).  Stub.
 """
 
 from __future__ import annotations

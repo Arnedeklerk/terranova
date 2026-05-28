@@ -1,6 +1,6 @@
 """``terranova:ndvi`` — Compute NDVI from a single multi-band raster.
 
-This is the Phase 0 smoke-test algorithm.  It deliberately uses only NumPy
+This is the smoke test algorithm.  It deliberately uses only NumPy
 and rasterio so it works on a vanilla QGIS install with no optional deps.
 """
 

@@ -72,7 +72,7 @@ class TerranovaPlugin:
         self.action_accuracy.triggered.connect(self._open_accuracy)
         self.iface.addPluginToRasterMenu(PLUGIN_NAME, self.action_accuracy)
 
-        # Phase 2.
+        # (planned).
         self.action_sam = QAction(icon, "Segment with SAM…", self.iface.mainWindow())
         self.action_sam.setObjectName("terranova_open_sam")
         self.action_sam.triggered.connect(self._open_sam)
@@ -85,7 +85,7 @@ class TerranovaPlugin:
         self.action_foundation.triggered.connect(self._open_foundation)
         self.iface.addPluginToRasterMenu(PLUGIN_NAME, self.action_foundation)
 
-        # Phase 3.
+        # (planned).
         self.action_timeseries = QAction(
             icon, "Time-series + change detection…", self.iface.mainWindow()
         )
@@ -93,7 +93,7 @@ class TerranovaPlugin:
         self.action_timeseries.triggered.connect(self._open_timeseries)
         self.iface.addPluginToRasterMenu(PLUGIN_NAME, self.action_timeseries)
 
-        # Phase 1 remainder.
+        # additional handlers.
         self.action_cdse = QAction(icon, "Sign in to CDSE…", self.iface.mainWindow())
         self.action_cdse.setObjectName("terranova_open_cdse")
         self.action_cdse.triggered.connect(self._open_cdse)

@@ -1,4 +1,4 @@
-"""STAC catalogue search dialog — Phase 1.
+"""STAC catalogue search dialog.
 
 A native QtWidgets dialog so the search workflow doesn't depend on the React
 panel being built.  AOI defaults to the current canvas extent; users can pick

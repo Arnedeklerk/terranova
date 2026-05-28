@@ -12,8 +12,8 @@ the console so the UI still functions without QGIS in the loop.
 - Vite 5
 - Tailwind CSS 3
 - Radix UI primitives (Dialog, Tooltip)
-- Plotly.js (spectral / time-series charts) — Phase 1+
-- MapLibre GL JS (before/after slider) — Phase 3
+- Plotly.js (spectral / time-series charts)
+- MapLibre GL JS (before/after slider)
 
 ## Build
 

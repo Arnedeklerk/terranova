@@ -1,6 +1,6 @@
 """Model explainability: SHAP for tree models, MC-Dropout uncertainty for MLPs.
 
-Phase 1 ships SHAP for sklearn-tree estimators.  Phase 2 will add SHAP
+Currently ships SHAP for sklearn-tree estimators.  Future versions can add SHAP
 GradientExplainer for foundation-model heads.
 """
 

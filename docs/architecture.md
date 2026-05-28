@@ -53,7 +53,7 @@ Every message is validated on the Python side with Pydantic (`CommandMessage`) b
 
 ## State
 
-Project state is a Pydantic v2 model persisted as `terranova.json` next to the `.qgz` file. It is schema-versioned (`schema_version`) so future migrations can be detected on load. Large training sets spill to SQLite (Phase 1+).
+Project state is a Pydantic v2 model persisted as `terranova.json` next to the `.qgz` file. It is schema-versioned (`schema_version`) so future migrations can be detected on load. Large training sets spill to SQLite.
 
 ## Module dependency graph
 
@@ -69,8 +69,8 @@ flowchart TD
 
     subgraph Controllers
         CtlCatalog["controllers/catalog.py"]
-        CtlClassify["controllers/classify.py (Phase 1)"]
-        CtlTimeseries["controllers/timeseries.py (Phase 3)"]
+        CtlClassify["controllers/classify.py"]
+        CtlTimeseries["controllers/timeseries.py"]
     end
 
     subgraph Tasks

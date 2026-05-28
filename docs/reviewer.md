@@ -42,7 +42,6 @@ Run through this checklist when reviewing a Terranova PR.  Anything that doesn't
 
 - [ ] User-visible behaviour change documented in `docs/`.
 - [ ] `CHANGELOG.md` updated.
-- [ ] If a new module was added, it appears in `HANDOFF.md`.
 
 ## Security
 

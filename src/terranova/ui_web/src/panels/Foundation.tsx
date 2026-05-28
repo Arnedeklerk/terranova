@@ -3,7 +3,7 @@ import { invoke } from "../bridge";
 import { JobProgress } from "./JobProgress";
 
 /**
- * Foundation-model fine-tune panel — Phase 2, parity with the Qt dialog.
+ * Foundation-model fine-tune panel, parity with the Qt dialog.
  *
  * Heavy workflow (GPU strongly recommended).  User picks paired scene + mask
  * rasters one at a time, sets backbone + epochs + batch size, kicks off the

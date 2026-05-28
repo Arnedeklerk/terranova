@@ -41,7 +41,7 @@ class Controllers:
         self._handlers["app.telemetry.set"] = self._telemetry_set
         self._handlers["app.telemetry.inspect"] = self._telemetry_inspect
 
-        # Catalogue + canvas (Phase 1).
+        # Catalogue + canvas.
         self._handlers["catalog.search"] = _catalog.search
         self._handlers["catalog.download"] = _catalog.download
         self._handlers["catalog.composite"] = _catalog.composite

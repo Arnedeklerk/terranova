@@ -1,4 +1,4 @@
-"""Sen2Cor subprocess wrapper — Phase 5.
+"""Sen2Cor subprocess wrapper.
 
 ESA's L1C → L2A atmospheric correction.  Sen2Cor is distributed as a
 standalone Python application; we shell out to its ``L2A_Process`` entry

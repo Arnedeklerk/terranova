@@ -1,4 +1,4 @@
-"""Accuracy report dialog — Phase 1.
+"""Accuracy report dialog.
 
 Pick a classified raster + validation vector layer + class field, compute
 the confusion matrix / kappa / per-class metrics, and render a one-page

@@ -1,4 +1,4 @@
-"""SAR preprocessing via SNAP + pyroSAR — Phase 5 planning surface.
+"""SAR preprocessing via SNAP + pyroSAR planning surface.
 
 The standard SAR-for-classification recipe is:
   1. Apply-orbit-file
@@ -37,7 +37,7 @@ def process_sentinel1_grd(
     """Run the standard S1 GRD → analysis-ready stack via pyroSAR + SNAP.
 
     Requires SNAP installed locally and discoverable on PATH, plus pyroSAR
-    in the Python env.  Phase 5 implementation; raises a clear error if the
+    in the Python env.  Future implementation; raises a clear error if the
     deps aren't present.
     """
     try:

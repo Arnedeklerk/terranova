@@ -1,4 +1,4 @@
-"""openEO backend — Phase 5.
+"""openEO backend.
 
 Pushes the same logical operations Terranova runs locally to an openEO
 endpoint.  Authentication via OIDC device-code (same shape as the CDSE

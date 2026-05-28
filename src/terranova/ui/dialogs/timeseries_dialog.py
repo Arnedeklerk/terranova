@@ -1,4 +1,4 @@
-"""Time-series + change detection dialog — Phase 3.
+"""Time-series + change detection dialog.
 
 End-to-end:
   1. STAC search → ItemCollection (reuses Phase-1 catalog code)

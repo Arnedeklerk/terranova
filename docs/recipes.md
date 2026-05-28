@@ -45,13 +45,13 @@ If your recipe needs more than these, prefer to build a Processing model or a Py
 
 ## Available actions
 
-The set of `action` values is the dispatch table in `terranova.controllers.dispatch.Controllers._register`.  Phase 0 ships:
+The set of `action` values is the dispatch table in `terranova.controllers.dispatch.Controllers._register`.  Currently ships:
 
 - `catalog.search` — STAC search returning items
 - `app.ping` / `app.version` — smoke tests
 - `app.telemetry.{status,set,inspect}` — telemetry consent flow
 
-Phase 1+ adds `stacking.composite`, `classify.train`, `classify.predict`, `accuracy.report`, `timeseries.cube`, `timeseries.bfast`.
+Future versions can add `stacking.composite`, `classify.train`, `classify.predict`, `accuracy.report`, `timeseries.cube`, `timeseries.bfast`.
 
 ## Worked example
 

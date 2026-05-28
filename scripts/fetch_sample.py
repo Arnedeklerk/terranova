@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch the Phase-1 demo dataset: a 5 km Sentinel-2 clip + class polygons.
 
-Phase 0 ships only the script.  Phase 1 wires it into the welcome screen.
+Currently ships only the script.  A future version wires it into the welcome screen.
 Run manually for now:
 
     python scripts/fetch_sample.py samples/

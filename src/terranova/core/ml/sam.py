@@ -4,7 +4,7 @@ We wrap :mod:`samgeo` (segment-geospatial, opengeos) which itself wraps
 Meta's SAM 2 / SAM 3 weights with geospatial-aware tiling, CRS handling,
 and polygon export.
 
-Two prompt types in Phase 2:
+Two prompt types in Planned:
 
 - **point / box prompts** — interactive (one click → instant mask)
 - **text prompts** — Grounded-SAM style ("buildings", "agricultural field")

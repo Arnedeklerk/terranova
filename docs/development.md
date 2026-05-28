@@ -103,7 +103,7 @@ State management: Zustand for UI-only state, Python's `ProjectState` for everyth
 3. `git commit -m "release: vX.Y.Z"`
 4. `git tag vX.Y.Z`
 5. `git push origin main vX.Y.Z`
-6. The Release workflow builds the `.zip` and uploads to a GitHub Release.  Phase 4 adds the plugins.qgis.org upload.
+6. The Release workflow builds the `.zip` and uploads to a GitHub Release.  Future workflow updates will push to plugins.qgis.org automatically.
 
 ## Where to look first when something breaks
 

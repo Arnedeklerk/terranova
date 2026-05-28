@@ -1,4 +1,4 @@
-"""Right-pane step wizard.  Phase 1 stub."""
+"""Right-pane step wizard.  stub."""
 
 from __future__ import annotations
 

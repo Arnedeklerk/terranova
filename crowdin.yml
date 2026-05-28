@@ -1,4 +1,4 @@
-# Crowdin config — Phase 4.
+# Crowdin config.
 # Run with:  crowdin upload sources / crowdin download translations.
 project_id_env: CROWDIN_PROJECT_ID
 api_token_env:  CROWDIN_PERSONAL_TOKEN

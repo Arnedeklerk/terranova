@@ -52,7 +52,7 @@ Every training run records its full `ClassifierConfig` (random seed included) in
 
 ## Exporting to ONNX
 
-After fitting any sklearn / LightGBM / XGBoost classifier, calling `core.ml.inference.export_onnx(model, out_path)` (Phase 1) writes an `.onnx` file that runs without PyTorch. The plugin caches one warm `InferenceSession` per model path; predictions on a 10,980 × 10,980 S2 tile finish in seconds on CPU.
+After fitting any sklearn / LightGBM / XGBoost classifier, calling `core.ml.inference.export_onnx(model, out_path)` writes an `.onnx` file that runs without PyTorch. The plugin caches one warm `InferenceSession` per model path; predictions on a 10,980 × 10,980 S2 tile finish in seconds on CPU.
 
 ## Memory rules of thumb
 

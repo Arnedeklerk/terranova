@@ -1,4 +1,4 @@
-"""CDSE OAuth login dialog — Phase 1.
+"""CDSE OAuth login dialog.
 
 Drives the device-code flow from :mod:`core.catalog.cdse`.  We never embed
 the user's password; they sign in to CDSE in their browser, type the

@@ -3,7 +3,7 @@
 Default for Sentinel-2 is OmniCloudMask (DPIRD-DMA) — sensor-agnostic, strong
 shadow detection.  Fallbacks: s2cloudless, SCL, Cloud Score+.
 
-Phase 0 ships interface declarations and the SCL implementation (which is a
+Currently ships interface declarations and the SCL implementation (which is a
 simple lookup over the L2A scene classification layer and does not require any
 heavy dependencies).
 """

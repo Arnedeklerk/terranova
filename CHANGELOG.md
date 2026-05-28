@@ -1,95 +1,56 @@
 # Changelog
 
-All notable changes to Terranova are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to Terranova are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] — 2026-05
 
-### Added — Phase 1 (remainder) + Phase 2 + Phase 3 + Phase 4 + Phase 5
-- **Phase 1**: `CdseLoginDialog` (device-code OAuth flow with browser handoff).
-- **Phase 2**: `SamDialog` (text + click prompts via segment-geospatial),
-  `FoundationDialog` (Prithvi / Clay / TerraMind fine-tune via TerraTorch),
-  real `core/ml/sam.py` + `core/ml/foundation.py` + ONNX export.
-- **Phase 3**: `TimeSeriesDialog` (STAC search → cube → NDVI/NBR/NDMI →
-  CuSum/BFAST/LandTrendr per-pixel → break + magnitude rasters + MP4),
-  `core/timeseries/change.py` unified driver, real `core/timeseries/cube.py`,
-  numpy LandTrendr-lite, CuSum fallback.
-- **Phase 4**: Cloudflare Worker telemetry endpoint at
-  `deploy/cloudflare-worker/` with KV storage + 30-day retention + strict
-  six-field validation + per-IP rate limit; landing page at `deploy/landing/`
-  with `_headers` CSP, `latest.json` for the update-check;
-  `core/update_check.py` with 24h cache + numeric semver compare;
-  Crowdin config + i18n workflow; release workflow that builds the .zip,
-  publishes to plugins.qgis.org via `qgis-plugin-ci`, and deploys landing +
-  worker to Cloudflare.
-- **Phase 5 (speculative)**: `core/preprocessing/sen2cor.py` subprocess
-  wrapper, `core/preprocessing/sar.py` pyroSAR shape,
-  `core/backends/openeo_backend.py` + `ComputeBackend` protocol.
-
-### Fixed
-- Architectural rule violation: `core/utils/colormap.py` imported `qgis.*`.
-  Moved the QGIS factory to `ui/colormap_qgis.py`; `core` is pure again.
-- `ProgressReporter.substep` composition was wrong (children took fraction
-  of *remaining* extent, breaking sibling-sum-to-1.0).  Now siblings compose.
-- Hypothesis tests for NDVI generated mismatched array shapes; consolidated
-  via `@st.composite`.
-
-### Verified
-- AST parse of all 146 Python files in the repo — zero syntax errors.
-- pytest with OSGeo4W Python 3.12 + `PROJ_DATA` pointed at pyproj's
-  bundled data: **199 unit tests pass, 0 failures, 2 skipped**.
-- ruff: 30 remaining stylistic nits (variable naming matching paper
-  notation, deferred imports — all deliberate); 100 auto-fixes applied.
-- mypy strict on core: optional-dep imports stubbed in `mypy.ini`;
-  two real type fixes landed (matplotlib `tostring_rgb` → `buffer_rgba`
-  for matplotlib 3.10+, modern `torch.onnx.export` tuple signature).
-- Cloudflare Worker: `npm run typecheck` clean; **6 vitest tests pass**
-  (incl. unknown-field-rejection enforcing the six-field privacy schema).
-- Web UI tier: `vite build` clean (105 modules, 192 kB → 63 kB gzipped).
-- CLI end-to-end smoke: `terranova ndvi` synthesised a 4-band raster,
-  ran NDVI, wrote a float32 GeoTIFF — output is 32×32, all 1024 pixels
-  finite, range `[-0.85, +0.85]` matching the synthetic gradient.
-
-## [0.1.0] — 2026-05-23
+First public release.
 
 ### Added
 
-- Phase 0 prototype skeleton with Phase 1-shape extensions.
-- `src/` layout repo with hatchling, ruff, mypy strict, pytest, pre-commit, editorconfig, gitattributes.
-- `classFactory` + `TerranovaPlugin` lifecycle with dock toggle and Processing-provider registration.
-- Embedded `QWebEngineView` with React 18 + TypeScript + Tailwind + Radix UI.
-- `Bridge` QObject + QWebChannel with Pydantic-validated message round-trip.
-- Pure-Python domain layer covering:
-  - STAC catalogue access (Planetary Computer, Earth Search, CDSE) + CDSE OAuth device-code flow.
-  - Lazy xarray cube building (odc-stac) with composites, spatial/temporal clipping, OmniCloudMask + SCL cloud masking.
-  - Classical ML (sklearn / LightGBM / XGBoost) — `build_estimator`, `train`, `predict_to_cog`, `cross_validate`, `extract_training_samples`, `tune_hyperparameters` (Optuna TPE), nested CV, probability calibration, ONNX export, SHAP explainer, majority/sieve/reclassify post-processing.
-  - Foundation-model stubs (TerraTorch Prithvi/Clay/TerraMind; segment-geospatial SAM 3 wrappers).
-  - Time-series: BFAST + numpy CuSum fallback; Zarr cube I/O.
-  - Accuracy: confusion matrix, OA/kappa, user's & producer's, F1, McNemar paired test, PDF report.
-  - Sensor band registry for Sentinel-2 / Landsat 4-9.
-  - Numpy region-grow ROI (euclidean + spectral-angle).
-  - Project state with Pydantic v2 + stepwise migration framework + reversible ledger.
-  - Opt-in telemetry (six-field payload, six-field test enforcement).
-  - BBox / colormap (Crameri default) / hashing / progress / logging utilities.
-  - Match-to-template raster reprojection.
-- 7 Processing algorithms: NDVI, NDWI, NDMI, NBR, NDSI, majority filter, sieve.
-- `terranova` CLI: `ndvi`, `index`, `search-s2`, `accuracy-report`, `validate-cog`.
-- Web tier panels: Welcome, CatalogSearch, CommandPalette (Ctrl/Cmd+K), Inspector, SpectralPlot (Plotly), BeforeAfter (MapLibre), TelemetryConsent.
-- Zustand store; QWebChannel client with browser-dev stub.
-- Native Qt UI: dock with graceful fallbacks, dark/light QSS from `tokens.yaml`, SVG icon, sample QML classification style.
-- 25+ unit-test files covering models, indices (concrete + Hypothesis property), accuracy, state migration, dispatch, CLI, telemetry, composites, region grow, post-process, sensors, bbox, config, metadata.txt sync, catalog controller, CDSE, inference cache, band-set, BFAST CuSum, viz, progress, logging, hashing, and an architectural-guard test that blocks any `qgis.*`/`PyQt*` import under `core/`.
-- GitHub Actions: lint + type + matrix unit tests (Ubuntu/Windows/macOS × py 3.10/3.11/3.12), web typecheck + build, QGIS-container integration (advisory), release workflow producing a plugin `.zip`, docs deploy to GitHub Pages.
-- Documentation (MkDocs Material): home, quickstart, installation, SCP migration cheat sheet, architecture (with Mermaid module graph), ML stack, recipes DSL, CLI, telemetry, workflow stubs, API reference, privacy.
-- Recipes: `crop_classification.yaml`, `deforestation_alert.yaml`.
-- AGENTS.md (hard rules), CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, NOTICE.md, HANDOFF.md.
-- GitHub issue templates (bug + feature), PR template, dependabot config (grouped updates).
-- `scripts/sync_version.py`, `scripts/fetch_sample.py`.
-- `core.utils.timing` + `core.utils.feature_flags` + `core.utils.parallel` + `core.utils.naming` + `core.utils.hashing` helpers.
-- `core.recipes.loader` + `core.viz.figures` (matplotlib + MP4 animation export) + `core.errors`.
-- `core.timeseries.landtrendr` numpy port + `core.timeseries.bfast.detect_breaks_cusum` fallback.
-- `core.io.read_window` + `core.io.reproject_to_match`.
-- `INVENTORY.md` — module-by-module status map.
-- `docs/risks.md` + `docs/reviewer.md` + `docs/development.md` + `docs/installation.md` + `docs/cli.md` + `docs/telemetry.md` + `docs/recipes.md` + `docs/scp_migration.md` + `docs/phase4_deployment.md` + `docs/ml.md`.
-- GitHub `CODEOWNERS`, issue templates, PR template, security workflow (pip-audit + npm-audit + CodeQL), dependabot config.
+- **Catalogue search.** STAC client for Planetary Computer, Earth Search,
+  and CDSE. Embedded interactive Leaflet map with drag-to-draw or
+  type-in AOI, OpenStreetMap and Esri satellite basemaps, scene-footprint
+  overlay with colour-coded multi-select.
+- **Download and composite.** Multi-select batch download of Sentinel-2
+  scenes as Cloud-Optimised GeoTIFFs. Optional AOI clip. Per-pixel mean
+  or median temporal composite from a date range, capped at a user-set
+  maximum number of images.
+- **Supervised classification.** Eight classifiers (Random Forest, Extra
+  Trees, Gradient Boosting, LightGBM, XGBoost, KNN, Logistic Regression,
+  MLP), each with a short pros/cons description in the panel. Train on
+  polygon or point training data, predict to a labelled COG, cross-
+  validated by default.
+- **Unsupervised classification.** K-Means and ISODATA on a random
+  subsample of the raster's pixels; output is a labelled COG identical
+  in shape to the supervised path.
+- **Accuracy assessment.** Two flows: validation-vector mode (sample
+  the classified raster at every pixel covered by a labelled vector)
+  and random-points mode (generate random / stratified / equalized-
+  stratified validation points, step through each one in an interactive
+  pad that auto-pans and zooms-to-pixel, persist labels and class
+  names alongside the points file). Both produce a PDF report plus an
+  optional Excel workbook with confusion matrix, OA, kappa, and per-
+  class user's / producer's / F1.
+- **Time-series change detection** (beta). Per-pixel CuSum, BFAST, and
+  LandTrendr on Sentinel-2 cubes. Break-index + magnitude rasters,
+  optional MP4 animation of the index over time.
+- **SAM segmentation** (beta). Text and point prompts via segment-
+  geospatial; map-click point picking from inside the dock.
+- **Foundation-model fine-tune scaffolding** (beta). Prithvi-EO-2.0,
+  Clay, and TerraMind via TerraTorch, with ONNX export of the trained
+  checkpoint.
+- **CDSE OAuth sign-in** (beta). Device-code flow.
+- **Dual UI.** Native Qt dialogs in `ui/dialogs/` (compatibility surface
+  for QGIS Standalone Windows without QtWebEngine) and a React-in-
+  QWebEngine dock with the embedded map (primary surface).
+- **Processing toolbox.** NDVI, NDWI, NDMI, NBR, NDSI, majority filter,
+  sieve algorithms.
+- **CLI.** `terranova` script for headless use of the core operations
+  (`ndvi`, `index`, `search-s2`, `accuracy-report`, `validate-cog`).
+- **Documentation.** MkDocs site under `docs/`, landing page under
+  `web/`, both published to GitHub Pages on every push to `main`.
 
-[Unreleased]: https://github.com/terranova-rs/terranova/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/terranova-rs/terranova/releases/tag/v0.1.0
+[1.0.0]: https://github.com/TerranovaEO/terranova/releases/tag/v1.0.0

@@ -21,4 +21,4 @@ Supported locales for v1.0:
 - `de`
 - `it`
 
-Crowdin integration ships in Phase 4.
+Crowdin integration is planned.

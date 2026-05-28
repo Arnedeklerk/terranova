@@ -4,9 +4,9 @@ The bundled samples are used by the onboarding wizard and by recipe tutorials.
 They are checked into the repo as small COG + GeoJSON triples (under a few MB
 each) so the plugin is immediately useful with no network access.
 
-## Phase 0
+## Notes
 
-The sample dataset is intentionally not committed yet — Phase 1 adds:
+The sample dataset is intentionally not committed yet adds:
 
 - `khartoum_s2_2024.tif` — a 5 km clipping of a Sentinel-2 L2A scene over
   central Khartoum, ESA Copernicus open data

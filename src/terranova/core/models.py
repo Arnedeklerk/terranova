@@ -90,7 +90,7 @@ class ClassifierKind(str, Enum):
     KNN = "knn"
     LOGISTIC_REGRESSION = "logistic_regression"
     MLP = "mlp"
-    # Phase 2
+    # Foundation-model variants.
     PRITHVI_EO_V2_300 = "prithvi_eo_v2_300"
     PRITHVI_EO_V2_600 = "prithvi_eo_v2_600"
     CLAY_V1_5 = "clay_v1_5"

@@ -1,6 +1,6 @@
 """Build a time-series Zarr cube from a STAC search — off the GUI thread.
 
-Phase 3 will implement the real ``run`` body.  The class is shipped now so
+A future version implements the real ``run`` body.  The class is shipped now so
 controllers can target it.
 """
 
@@ -39,7 +39,7 @@ class BuildCubeTask(QgsTask):
                 self.job.items, bands=tuple(self.job.bands), resolution=self.job.resolution
             )
             self.setProgress(20)
-            # Phase 3: cloud mask + dask compute → Zarr.  For now write a
+            # Planned: cloud mask + dask compute → Zarr.  For now write a
             # single time slice as a smoke test.
             self.job.out_path.parent.mkdir(parents=True, exist_ok=True)
             stack.to_zarr(str(self.job.out_path), mode="w")

@@ -57,16 +57,6 @@ End-user installs go via Plugins → Manage and Install → Search "Terranova" (
 
 See [docs/scp_migration.md](docs/scp_migration.md) — one-page cheat-sheet mapping every SCP concept to its Terranova equivalent.
 
-## Phase plan
-
-| Phase | Scope | Deliverable |
-|-------|-------|-------------|
-| 0 | Skeleton, CI, web bridge, NDVI alg | Plugin loads on three OSes |
-| 1 | STAC search + classical classification | RF / LightGBM / XGBoost end-to-end |
-| 2 | Foundation models + SAM | Prithvi fine-tune + SAM 3 prompts |
-| 3 | Time-series + change detection | BFAST / LandTrendr / CCDC |
-| 4 | Polish, i18n, public release | v1.0.0 on plugins.qgis.org |
-
 ## Licence
 
 [GPL-3.0-or-later](LICENSE). Distributed via the official QGIS plugins page.

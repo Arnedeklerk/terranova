@@ -1,8 +1,8 @@
 """Spectral indices computed with :mod:`spyndex`.
 
-We deliberately keep a hand-rolled NDVI for Phase 0 because it has no extra
+We deliberately keep a hand-rolled NDVI because it has no extra
 dependencies and is the smoke-test algorithm used by the NDVI Processing
-algorithm in Phase 0.
+algorithm (planned).
 """
 
 from __future__ import annotations
