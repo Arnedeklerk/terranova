@@ -108,7 +108,8 @@ export function AoiMap({
     active: boolean;
     start: L.LatLng | null;
     rect: L.Rectangle | null;
-  }>({ active: false, start: null, rect: null });
+    lastMove: L.LatLng | null;
+  }>({ active: false, start: null, rect: null, lastMove: null });
   // Latest onAoiChange — refs so the draw handlers don't have to be
   // re-registered on every parent re-render.
   const onAoiChangeRef = useRef(onAoiChange);
@@ -154,6 +155,7 @@ export function AoiMap({
         d.rect = null;
       }
       d.start = null;
+      d.lastMove = null;
       d.active = false;
       map.dragging.enable();
       if (containerRef.current) {
@@ -161,44 +163,81 @@ export function AoiMap({
       }
     };
 
+    const completeDraw = (end: L.LatLng | null) => {
+      const d = drawingRef.current;
+      const start = d.start;
+      if (!start) return;
+      const e = end ?? d.lastMove;
+      if (!e) {
+        abortDraw();
+        return;
+      }
+      const south = Math.min(start.lat, e.lat);
+      const north = Math.max(start.lat, e.lat);
+      const west = Math.min(start.lng, e.lng);
+      const east = Math.max(start.lng, e.lng);
+      abortDraw();
+      if (north - south < 1e-5 || east - west < 1e-5) return;
+      onAoiChangeRef.current({ west, south, east, north });
+    };
+
     const onMouseDown = (e: L.LeafletMouseEvent) => {
       const d = drawingRef.current;
       if (!d.active) return;
-      // Only left-button starts a drag.  Right-button mousedown here
-      // is the user trying to cancel the in-progress draw; let the
-      // contextmenu handler deal with it.
       if (e.originalEvent.button !== 0) return;
       d.start = e.latlng;
+      d.lastMove = e.latlng;
       d.rect = L.rectangle(L.latLngBounds(d.start, d.start), {
         color: "#FF9E2F",
         weight: 2,
         dashArray: "6 4",
         fill: false,
-        // CRITICAL: without this the rectangle layer captures pointer
-        // events itself, so right-click ON the rectangle never bubbles
-        // up to map.on("contextmenu") and we can't cancel.  Same reason
-        // we need it on the persistent AOI layer below.
         interactive: false,
+        renderer: L.svg(),
       }).addTo(map);
       map.dragging.disable();
     };
     const onMouseMove = (e: L.LeafletMouseEvent) => {
       const d = drawingRef.current;
       if (!d.active || !d.start || !d.rect) return;
+      d.lastMove = e.latlng;
       d.rect.setBounds(L.latLngBounds(d.start, e.latlng));
     };
-    const onMouseUp = (e: L.LeafletMouseEvent) => {
+    // Document-level mouseup: Leaflet's map.on("mouseup") only fires when
+    // the release happens OVER the map container.  Dragging toward the
+    // edge and releasing outside (very common when picking a large AOI)
+    // means the drag stayed "active" forever and the AOI never committed
+    // — that's the persistent 'box doesn't stick' bug.
+    //
+    // Capture-phase listener on the document means we see every mouseup
+    // and can decide whether it terminates an in-progress drag.  We
+    // ignore non-left-button releases (button 0 only).  When the
+    // release happens inside the map container we use that point;
+    // when outside we fall back to the last-seen mousemove point so
+    // the user gets the bounds they were drawing right up to the
+    // moment they dragged off-edge.
+    const onDocumentMouseUp = (de: MouseEvent) => {
       const d = drawingRef.current;
       if (!d.active || !d.start) return;
-      const end = e.latlng;
-      const south = Math.min(d.start.lat, end.lat);
-      const north = Math.max(d.start.lat, end.lat);
-      const west = Math.min(d.start.lng, end.lng);
-      const east = Math.max(d.start.lng, end.lng);
-      abortDraw();
-      // Don't draw degenerate boxes (single-click without drag).
-      if (north - south < 1e-5 || east - west < 1e-5) return;
-      onAoiChangeRef.current({ west, south, east, north });
+      if (de.button !== 0) return;
+      let end: L.LatLng | null = null;
+      const container = map.getContainer();
+      const rect = container.getBoundingClientRect();
+      const inside =
+        de.clientX >= rect.left &&
+        de.clientX <= rect.right &&
+        de.clientY >= rect.top &&
+        de.clientY <= rect.bottom;
+      if (inside) {
+        try {
+          end = map.mouseEventToLatLng(de);
+        } catch {
+          end = d.lastMove;
+        }
+      } else {
+        end = d.lastMove;
+      }
+      completeDraw(end);
     };
     // Right-click during drag MUST cancel cleanly.  Three independent
     // paths in case any one of them is swallowed somewhere up the stack
@@ -228,16 +267,19 @@ export function AoiMap({
 
     map.on("mousedown", onMouseDown);
     map.on("mousemove", onMouseMove);
-    map.on("mouseup", onMouseUp);
     map.on("contextmenu", onContextMenu);
+    // Document-level so off-map releases still commit the drag — see
+    // onDocumentMouseUp comment.  Use capture so we win against
+    // ancestors that might preventDefault on mouseup.
+    document.addEventListener("mouseup", onDocumentMouseUp, true);
     window.addEventListener("contextmenu", onWindowContextMenu, true);
     window.addEventListener("keydown", onEsc);
 
     return () => {
       map.off("mousedown", onMouseDown);
       map.off("mousemove", onMouseMove);
-      map.off("mouseup", onMouseUp);
       map.off("contextmenu", onContextMenu);
+      document.removeEventListener("mouseup", onDocumentMouseUp, true);
       window.removeEventListener("contextmenu", onWindowContextMenu, true);
       window.removeEventListener("keydown", onEsc);
       map.remove();
@@ -283,6 +325,13 @@ export function AoiMap({
       // that should reach the map (e.g. starting a new draw on top
       // of the existing rectangle).
       interactive: false,
+      // Force SVG renderer for this one static overlay even though
+      // the map uses canvas by default — canvas rendering of a single
+      // dashed-stroke-only rectangle has been unreliable in QtWebEngine
+      // embeds (occasionally renders blank).  SVG is bulletproof for
+      // single static overlays and the perf cost (one extra DOM node)
+      // is irrelevant compared to the footprints, which keep canvas.
+      renderer: L.svg(),
     }).addTo(map);
     // Fit the bounds with a bit of padding, but only if the bounds are
     // outside the current view — don't yank the user's zoom for free.
