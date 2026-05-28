@@ -73,6 +73,11 @@ export function CatalogSearch() {
   const [start, setStart] = useState("2024-06-01");
   const [end, setEnd] = useState("2024-09-30");
   const [maxCloud, setMaxCloud] = useState(20);
+  // Composite intent — when ON, the search caps results at maxImages
+  // (cheapest cost / fastest run), auto-ticks them all on completion,
+  // and visually promotes the composite buttons in the results header.
+  const [compositeIntent, setCompositeIntent] = useState(false);
+  const [maxImages, setMaxImages] = useState(30);
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<CatalogItem[] | null>(null);
   // Multi-select: set of item IDs the user has ticked.
@@ -249,9 +254,20 @@ export function CatalogSearch() {
         bbox,
         datetime: { start, end },
         max_cloud: maxCloud,
+        // When the user intends to composite, cap the catalogue
+        // search at the chosen max so we don't paginate through
+        // hundreds of scenes we'll never use.
+        limit: compositeIntent ? maxImages : 50,
       });
       if (res.ok && res.result) {
-        setResults(res.result.items ?? []);
+        const items = res.result.items ?? [];
+        setResults(items);
+        // Auto-tick everything for composite mode so the user can
+        // immediately click 'Composite (median)' without ticking
+        // each row.  They can still untick scenes they don't want.
+        if (compositeIntent && items.length) {
+          setSelectedIds(new Set(items.map((it) => it.id)));
+        }
       } else {
         setErr(res.error ?? "search failed");
       }
@@ -379,6 +395,50 @@ export function CatalogSearch() {
             className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
           />
         </Field>
+      </div>
+
+      {/* Composite intent — sits between the dates and the cloud-cover
+          slider so the date range and 'how many to pull from that
+          range' are visually adjacent. */}
+      <div className="mt-3 grid grid-cols-2 gap-3 items-end">
+        <label
+          className="flex items-center gap-2 text-xs cursor-pointer select-none"
+          title="When ON, the search caps results at 'Max images' and auto-ticks them so you can click 'Composite (median)' immediately."
+        >
+          <input
+            type="checkbox"
+            checked={compositeIntent}
+            onChange={(e) => setCompositeIntent(e.target.checked)}
+          />
+          <span>
+            Create composite from this search
+            <span className="ml-2 text-fg-muted/70">
+              — mean / median over time
+            </span>
+          </span>
+        </label>
+        <Field
+          label="Max images for composite"
+          hint={
+            compositeIntent
+              ? `Caps catalogue results at this many scenes.`
+              : "Enable composite to set a cap."
+          }
+        >
+          <input
+            type="number"
+            value={maxImages}
+            min={2}
+            max={500}
+            step={5}
+            disabled={!compositeIntent}
+            onChange={(e) => setMaxImages(parseInt(e.target.value, 10) || 0)}
+            className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono disabled:opacity-40"
+          />
+        </Field>
+      </div>
+
+      <div className="mt-3">
         <Field label={`Max cloud cover (${maxCloud}%)`}>
           <input
             type="range"
@@ -423,7 +483,12 @@ export function CatalogSearch() {
               <button
                 onClick={() => downloadBatch()}
                 disabled={selectedIds.size === 0 || downloading}
-                className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
+                className={
+                  "px-3 py-1 rounded text-xs disabled:opacity-50 " +
+                  (compositeIntent
+                    ? "bg-bg-2 hover:bg-bg-0 border border-bg-2"
+                    : "bg-accent text-white")
+                }
               >
                 {downloading
                   ? "Downloading…"
@@ -433,13 +498,26 @@ export function CatalogSearch() {
               </button>
               {/* Composite (mean / median) — only useful with 2+ ticked
                   items.  Loads them all as a lazy cube, reduces over
-                  time, writes a single COG.  The split button keeps the
-                  method choice visible without a modal. */}
-              <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
+                  time, writes a single COG.  When the user has the
+                  composite-intent checkbox on, swap the visual primary
+                  here so the median button is the obvious action. */}
+              <div
+                className={
+                  "flex items-stretch border rounded overflow-hidden " +
+                  (compositeIntent
+                    ? "border-accent"
+                    : "bg-bg-2 border-bg-2")
+                }
+              >
                 <button
                   onClick={() => startComposite("median")}
                   disabled={selectedIds.size < 2 || downloading}
-                  className="px-2.5 py-1 text-xs hover:bg-bg-0 border-r border-bg-2 disabled:opacity-40 disabled:cursor-default"
+                  className={
+                    "px-2.5 py-1 text-xs disabled:opacity-40 disabled:cursor-default " +
+                    (compositeIntent
+                      ? "bg-accent text-white hover:brightness-110 border-r border-accent"
+                      : "hover:bg-bg-0 border-r border-bg-2")
+                  }
                   title="Median reflectance per pixel across the ticked scenes — robust to clouds + outliers, recommended default."
                 >
                   Composite (median)
@@ -447,7 +525,12 @@ export function CatalogSearch() {
                 <button
                   onClick={() => startComposite("mean")}
                   disabled={selectedIds.size < 2 || downloading}
-                  className="px-2.5 py-1 text-xs hover:bg-bg-0 disabled:opacity-40 disabled:cursor-default"
+                  className={
+                    "px-2.5 py-1 text-xs disabled:opacity-40 disabled:cursor-default " +
+                    (compositeIntent
+                      ? "bg-accent/80 text-white hover:brightness-110"
+                      : "hover:bg-bg-0")
+                  }
                   title="Mean reflectance per pixel — smoother but more cloud-affected. Pick median unless you specifically need mean."
                 >
                   Mean
@@ -827,13 +910,23 @@ function CornerRow({ name, format, dd, dms, onDd, onDms }: CornerRowProps) {
 
 interface FieldProps {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }
-function Field({ label, children }: FieldProps) {
+function Field({ label, hint, children }: FieldProps) {
+  const longHint = !!hint && hint.length >= 80;
   return (
     <label className="flex flex-col gap-1 text-xs text-fg-muted">
-      {label}
+      <span>
+        {label}
+        {hint && !longHint && (
+          <span className="ml-2 text-fg-muted/70">— {hint}</span>
+        )}
+      </span>
       {children}
+      {hint && longHint && (
+        <span className="text-fg-muted/70 leading-snug mt-0.5">{hint}</span>
+      )}
     </label>
   );
 }
