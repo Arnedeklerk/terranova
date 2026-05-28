@@ -67,13 +67,10 @@ def start(payload: dict[str, Any]) -> dict[str, Any]:
         geom = feat.GetGeometryRef()
         if geom is None:
             continue
-        # wkbFlatten strips Z/M dimensionality so wkbPoint25D, wkbPointM,
-        # and wkbPointZM all compare equal to wkbPoint.  Without this the
-        # check rejects perfectly valid 3D-stored points and we hit the
-        # 'no point features' error on a file that does have them.
-        gtype = ogr.wkbFlatten(geom.GetGeometryType())
-        if gtype != ogr.wkbPoint:
-            skipped_types[gtype] = skipped_types.get(gtype, 0) + 1
+        if not _is_point_type(ogr, geom.GetGeometryType()):
+            skipped_types[geom.GetGeometryType()] = (
+                skipped_types.get(geom.GetGeometryType(), 0) + 1
+            )
             continue
         features.append(
             {
@@ -241,3 +238,33 @@ def clear(_payload: dict[str, Any]) -> dict[str, Any]:
             pass
         _marker_band = None
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------- #
+# Helpers                                                                     #
+# --------------------------------------------------------------------------- #
+def _is_point_type(ogr_mod: Any, t: int) -> bool:
+    """True if ``t`` is wkbPoint or any of its Z/M/ZM variants.
+
+    GDAL exposes Z/M point types as separate integer codes (wkbPoint25D,
+    wkbPointM, wkbPointZM) — comparing the raw ``GetGeometryType()``
+    against ``wkbPoint`` alone falsely rejects them.  The clean way to
+    normalise is ``ogr.GT_Flatten()`` which strips the dimensionality
+    flags; some older bindings don't expose it (or expose it under
+    the C++ macro name ``wkbFlatten``), so we try both then fall back
+    to explicit membership.
+    """
+    for name in ("GT_Flatten", "wkbFlatten"):
+        fn = getattr(ogr_mod, name, None)
+        if callable(fn):
+            try:
+                return int(fn(t)) == int(ogr_mod.wkbPoint)
+            except Exception:  # noqa: BLE001
+                break
+    # Fallback: explicit set membership.  Every Z/M variant we care about.
+    point_codes = {int(ogr_mod.wkbPoint)}
+    for name in ("wkbPoint25D", "wkbPointM", "wkbPointZM"):
+        val = getattr(ogr_mod, name, None)
+        if val is not None:
+            point_codes.add(int(val))
+    return int(t) in point_codes
