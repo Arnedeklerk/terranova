@@ -81,6 +81,7 @@ class Controllers:
 
         self._handlers["accuracy.label.start"] = _labeling.start
         self._handlers["accuracy.label.update"] = _labeling.update
+        self._handlers["accuracy.label.set_class_names"] = _labeling.set_class_names
         self._handlers["accuracy.label.pan_to"] = _labeling.pan_to
         self._handlers["accuracy.label.clear"] = _labeling.clear
         self._handlers["timeseries.run"] = _timeseries.run

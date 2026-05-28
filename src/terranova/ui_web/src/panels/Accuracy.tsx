@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { invoke } from "../bridge";
 import { JobProgress } from "./JobProgress";
 
@@ -119,9 +119,8 @@ export function Accuracy() {
   }, [rasterSrc]);
 
   // Labelling-mode state.  Driven by accuracy.label.start which returns
-  // every point's coords + predicted/truth + the available class codes.
-  // The CRS comes back too so accuracy.label.pan_to can project to the
-  // canvas CRS for the marker.
+  // every point's coords + predicted/truth + the available class codes
+  // + an optional {code: name} map persisted alongside the GeoPackage.
   interface LabelFeature {
     fid: number;
     x: number;
@@ -133,6 +132,7 @@ export function Accuracy() {
   const [labelFile, setLabelFile] = useState<string>("");
   const [labelFeatures, setLabelFeatures] = useState<LabelFeature[]>([]);
   const [labelClasses, setLabelClasses] = useState<number[]>([]);
+  const [labelClassNames, setLabelClassNames] = useState<Record<string, string>>({});
   const [labelCrs, setLabelCrs] = useState<string>("EPSG:4326");
   const [labelIdx, setLabelIdx] = useState<number>(0);
   const [labelActive, setLabelActive] = useState<boolean>(false);
@@ -282,13 +282,18 @@ export function Accuracy() {
       return;
     }
     setErr(null);
+    // The raster the points were sampled from is what defines pixel
+    // size for the first-pan zoom — prefer the generator's pick if set
+    // (most recent), else fall back to the report's raster.
+    const rasterForLabelling = genRasterSrc || rasterSrc || null;
     const r = await invoke<{
       features: LabelFeature[];
       classes: number[];
+      class_names: Record<string, string>;
       src_crs: string;
     }>("accuracy.label.start", {
       path: labelFile,
-      raster_path: rasterSrc || null,
+      raster_path: rasterForLabelling,
     });
     if (!r.ok || !r.result) {
       setErr(r.error ?? "could not load validation points");
@@ -296,6 +301,7 @@ export function Accuracy() {
     }
     setLabelFeatures(r.result.features);
     setLabelClasses(r.result.classes);
+    setLabelClassNames(r.result.class_names || {});
     setLabelCrs(r.result.src_crs);
     // Jump to the first unlabelled point (truth == 0); fall back to 0
     // if every point already has a label (resume / re-check).
@@ -304,22 +310,50 @@ export function Accuracy() {
     setLabelIdx(idx);
     setLabelActive(true);
     setLabelNote(r.result.features[idx]?.note ?? "");
-    panToIdx(idx, r.result.features, r.result.src_crs);
+    // Fit zoom ONLY on first pan — gets the user to a sensible "I can
+    // see a single pixel" view.  After that we pan without changing zoom
+    // so they can adjust once and have it stick.
+    panToIdx(
+      idx,
+      r.result.features,
+      r.result.src_crs,
+      rasterForLabelling,
+      true,
+    );
   };
 
   /**
    * Pan the canvas to the point at `i` and refresh the highlight marker.
-   * Accepts the features + crs as args so it can be called during
-   * startLabelling before the state setters have settled.
+   * `fitZoom` should be true ONLY on the first pan (zoom to ~40 raster
+   * pixels around the point).  Subsequent calls keep whatever zoom the
+   * user dialed in.
    */
   const panToIdx = (
     i: number,
     feats: LabelFeature[] = labelFeatures,
     crs: string = labelCrs,
+    rasterPath: string | null = genRasterSrc || rasterSrc || null,
+    fitZoom: boolean = false,
   ) => {
     const f = feats[i];
     if (!f) return;
-    void invoke("accuracy.label.pan_to", { x: f.x, y: f.y, crs });
+    void invoke("accuracy.label.pan_to", {
+      x: f.x,
+      y: f.y,
+      crs,
+      fit_zoom: fitZoom,
+      raster_path: rasterPath,
+    });
+  };
+
+  /** Persist class names to the sidecar JSON next to the GeoPackage. */
+  const saveClassNames = async (names: Record<string, string>) => {
+    if (!labelFile) return;
+    setLabelClassNames(names);
+    await invoke("accuracy.label.set_class_names", {
+      path: labelFile,
+      names,
+    });
   };
 
   /** Persist truth for the current point and step to a delta (+1, -1). */
@@ -393,15 +427,58 @@ export function Accuracy() {
   /** "Compute & show metrics" — no file output, just the inline display. */
   const computeFromPointsInline = () => computeFromPoints(undefined);
 
-  /** "Compute + save report" — asks for a save path then runs. */
-  const computeFromPointsAndSave = async () => {
+  /** "Save as PDF…" — opens save dialog filtered to .pdf, writes PDF only. */
+  const saveAsPdf = async () => {
     const r = await invoke<{ path: string }>("dialog.save_file", {
       default: "terranova_accuracy.pdf",
-      title: "Save accuracy report",
+      title: "Save accuracy report as PDF",
       filter: "PDF (*.pdf)",
     });
     if (!r.ok || !r.result?.path) return;
-    void computeFromPoints(r.result.path);
+    // Force PDF-only by passing the .pdf path and toggling Excel off.
+    const stem = r.result.path.replace(/\.(pdf|xlsx)$/i, "") + ".pdf";
+    void computeFromPointsExplicit(stem, false);
+  };
+
+  /** "Save as Excel…" — opens save dialog filtered to .xlsx, writes Excel only. */
+  const saveAsExcel = async () => {
+    const r = await invoke<{ path: string }>("dialog.save_file", {
+      default: "terranova_accuracy.xlsx",
+      title: "Save accuracy report as Excel",
+      filter: "Excel workbook (*.xlsx)",
+    });
+    if (!r.ok || !r.result?.path) return;
+    const stem = r.result.path.replace(/\.(pdf|xlsx)$/i, "") + ".xlsx";
+    void computeFromPointsExplicit(stem, true, true);
+  };
+
+  /**
+   * Internal: compute + save with explicit format choice.  `pdfOrXlsxPath`
+   * is a single file path; `xlsxOnly` (true) skips writing PDF.
+   */
+  const computeFromPointsExplicit = async (
+    targetPath: string,
+    writeExcel: boolean,
+    xlsxOnly: boolean = false,
+  ) => {
+    if (!labelFile) {
+      setErr("Pick a labelled validation-points .gpkg first.");
+      return;
+    }
+    setErr(null);
+    setResult(null);
+    setBusy(true);
+    const stem = targetPath.replace(/\.(pdf|xlsx)$/i, "");
+    const r = await invoke<{ job_id: string }>("accuracy.run_on_points", {
+      points_path: labelFile,
+      output_pdf: xlsxOnly ? null : stem + ".pdf",
+      output_xlsx: writeExcel ? stem + ".xlsx" : null,
+    });
+    if (r.ok && r.result?.job_id) setJobId(r.result.job_id);
+    else {
+      setBusy(false);
+      setErr(r.error ?? "accuracy.run_on_points failed");
+    }
   };
 
   return (
@@ -707,6 +784,8 @@ export function Accuracy() {
             features={labelFeatures}
             idx={labelIdx}
             classes={labelClasses}
+            classNames={labelClassNames}
+            onClassNamesChange={saveClassNames}
             note={labelNote}
             setNote={setLabelNote}
             onStep={(d, picked) => labelStep(d, picked)}
@@ -726,14 +805,6 @@ export function Accuracy() {
           vs <code>truth</code>. Unlabelled points (where <code>truth = 0</code>)
           are skipped.
         </p>
-        <label className="flex items-center gap-2 mb-3 text-xs text-fg-muted cursor-pointer">
-          <input
-            type="checkbox"
-            checked={emitXlsx}
-            onChange={(e) => setEmitXlsx(e.target.checked)}
-          />
-          Also export an Excel workbook when saving the report
-        </label>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={computeFromPointsInline}
@@ -743,11 +814,18 @@ export function Accuracy() {
             {busy ? "Computing…" : "Compute & show metrics"}
           </button>
           <button
-            onClick={computeFromPointsAndSave}
+            onClick={saveAsPdf}
             disabled={!labelFile || busy}
             className="px-3 py-1.5 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded text-xs disabled:opacity-50"
           >
-            Compute + save PDF / Excel…
+            Save as PDF…
+          </button>
+          <button
+            onClick={saveAsExcel}
+            disabled={!labelFile || busy}
+            className="px-3 py-1.5 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded text-xs disabled:opacity-50"
+          >
+            Save as Excel…
           </button>
         </div>
       </div>
@@ -785,7 +863,7 @@ export function Accuracy() {
           <div className="grid grid-cols-3 gap-3">
             <Stat
               label="Overall accuracy"
-              value={result.overall_accuracy.toFixed(3)}
+              value={`${(result.overall_accuracy * 100).toFixed(1)}%`}
             />
             <Stat label="Kappa (κ)" value={result.kappa.toFixed(3)} />
             <Stat label="N samples" value={String(result.n_samples)} />
@@ -808,6 +886,50 @@ export function Accuracy() {
         </div>
       )}
     </section>
+  );
+}
+
+/* -------------------------------------------------------------------- */
+/* Class-names editor — persists to the GPKG's sidecar JSON via the     */
+/* labeling.set_class_names bridge action.                              */
+/* -------------------------------------------------------------------- */
+function ClassNamesEditor({
+  classes,
+  classNames,
+  onChange,
+}: {
+  classes: number[];
+  classNames: Record<string, string>;
+  onChange(names: Record<string, string>): void;
+}) {
+  return (
+    <div className="bg-bg-2 border border-bg-2 rounded p-2 mb-2">
+      <p className="text-fg-muted text-xs mb-2">
+        Optional. Names are saved alongside the points file and apply
+        wherever a class code appears in the labelling pad.
+      </p>
+      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 items-center">
+        {classes.map((c) => (
+          <Fragment key={c}>
+            <span className="text-xs font-mono text-fg-muted text-right pr-1">
+              {c}
+            </span>
+            <input
+              type="text"
+              value={classNames[String(c)] ?? ""}
+              placeholder={`e.g. "Built up" for class ${c}`}
+              onChange={(e) => {
+                const next = { ...classNames };
+                if (e.target.value.trim()) next[String(c)] = e.target.value;
+                else delete next[String(c)];
+                onChange(next);
+              }}
+              className="bg-bg-1 border border-bg-2 rounded px-2 py-0.5 text-xs"
+            />
+          </Fragment>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -896,6 +1018,8 @@ interface LabellingPadProps {
   features: Array<{ fid: number; predicted: number; truth: number }>;
   idx: number;
   classes: number[];
+  classNames: Record<string, string>;
+  onClassNamesChange(names: Record<string, string>): void;
   note: string;
   setNote(s: string): void;
   /** delta is +1/-1/0 ; picked is the chosen class code, or null to skip. */
@@ -907,6 +1031,8 @@ function LabellingPad({
   features,
   idx,
   classes,
+  classNames,
+  onClassNamesChange,
   note,
   setNote,
   onStep,
@@ -927,6 +1053,16 @@ function LabellingPad({
   useEffect(() => {
     setPicked(cur.truth || cur.predicted);
   }, [idx, cur.truth, cur.predicted]);
+
+  // Render a class code as its user-set name if available, otherwise
+  // the bare numeric code.  Used in the chips, the truth/predicted
+  // display, and the class-names editor below.
+  const nameFor = (code: number): string => {
+    const n = classNames[String(code)];
+    return n && n.trim() ? n : String(code);
+  };
+
+  const [namesOpen, setNamesOpen] = useState(false);
 
   return (
     <div>
@@ -952,21 +1088,46 @@ function LabellingPad({
         <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <div className="text-fg-muted">Predicted class</div>
-          <div className="font-mono text-lg font-semibold">{cur.predicted}</div>
-        </div>
-        <div>
-          <div className="text-fg-muted">Existing truth</div>
-          <div className="font-mono text-lg font-semibold">
-            {cur.truth || <span className="text-fg-muted/60">—</span>}
-          </div>
-        </div>
+      {/* Single combined display: 'Truth (predicted: <name>)'.  Truth
+          renders the existing saved value OR '—' if the user hasn't
+          saved one for this point yet.  Predicted comes from the
+          raster sample done at generation time. */}
+      <div className="text-sm">
+        <span className="text-fg-muted">Truth: </span>
+        <span className="font-semibold">
+          {cur.truth ? (
+            nameFor(cur.truth)
+          ) : (
+            <span className="text-fg-muted/60">—</span>
+          )}
+        </span>
+        <span className="text-fg-muted">
+          {"  (predicted: "}
+          <span className="text-fg">{nameFor(cur.predicted)}</span>
+          {")"}
+        </span>
       </div>
 
       <div className="mt-3">
-        <div className="text-xs text-fg-muted mb-1">True class</div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-fg-muted">True class</span>
+          <button
+            onClick={() => setNamesOpen((v) => !v)}
+            className="text-xs text-fg-muted hover:text-fg"
+            title="Set readable names for each class code"
+          >
+            {namesOpen ? "Hide names ↑" : "Edit class names ↓"}
+          </button>
+        </div>
+
+        {namesOpen && (
+          <ClassNamesEditor
+            classes={classes}
+            classNames={classNames}
+            onChange={onClassNamesChange}
+          />
+        )}
+
         {/* If <=10 classes, render as a row of clickable chips.  More
             classes → fall back to a dropdown.  Chips are faster for the
             common case. */}
@@ -985,7 +1146,7 @@ function LabellingPad({
                       : "bg-bg-2 hover:bg-bg-0 border-bg-2")
                   }
                 >
-                  {c}
+                  {nameFor(c)}
                 </button>
               );
             })}
@@ -998,7 +1159,7 @@ function LabellingPad({
           >
             {classes.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {nameFor(c)}
               </option>
             ))}
           </select>
