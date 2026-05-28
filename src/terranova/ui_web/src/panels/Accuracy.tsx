@@ -3,23 +3,48 @@ import { invoke } from "../bridge";
 import { JobProgress } from "./JobProgress";
 
 /**
- * Accuracy report — Phase 1, parity with the Qt dialog.
+ * Accuracy report — two paths, picked by the top-level mode toggle:
  *
- * Compares a classified raster to a labelled validation vector, computes
- * OA / kappa / per-class / F1, and writes a one-page PDF report.
+ * - "Use a validation vector": traditional flow.  Pick a classified
+ *   raster + a labelled validation vector + its class field; we
+ *   sample the raster at every pixel covered by the vector and
+ *   compute OA / kappa / per-class metrics.
+ *
+ * - "Generate random points": modern flow.  Pick a raster, generate
+ *   a stratified sample of points, label each with the truth class
+ *   via the point-by-point pad, then compute the report straight
+ *   from the points file's `predicted` and `truth` columns.  No
+ *   separate validation vector needed.
+ *
+ * Both modes end in the same inline metrics block (OA, κ, N, per-class
+ * UA/PA/F1, confusion matrix) plus optional PDF + Excel exports.
  */
+
+type AccuracyMode = "vector" | "points";
 
 interface LayerInfo {
   name: string;
   source: string;
 }
 
+interface ReportPayload {
+  class_labels: number[];
+  confusion_matrix: number[][];
+  users_accuracy: (number | null)[];
+  producers_accuracy: (number | null)[];
+  f1_per_class: (number | null)[];
+  overall_accuracy: number;
+  kappa: number;
+  n_samples: number;
+}
+
 interface AccuracyResult {
-  output_path: string;
+  output_path?: string | null;
   output_xlsx?: string | null;
   overall_accuracy: number;
   kappa: number;
   n_samples: number;
+  report?: ReportPayload | null;
 }
 
 type SamplingStrategy = "random" | "stratified" | "equalized_stratified";
@@ -39,6 +64,8 @@ const STRATEGY_HINTS: Record<SamplingStrategy, string> = {
 };
 
 export function Accuracy() {
+  const [mode, setMode] = useState<AccuracyMode>("vector");
+
   const [rasters, setRasters] = useState<LayerInfo[]>([]);
   const [vectors, setVectors] = useState<LayerInfo[]>([]);
   const [fields, setFields] = useState<string[]>([]);
@@ -330,6 +357,53 @@ export function Accuracy() {
     void invoke("accuracy.label.clear");
   };
 
+  // ----------------- compute-from-points ---------------------------------
+  /**
+   * Compute the accuracy report directly from the labelled points file.
+   * Bypasses the vector-on-raster sampling step — the points already
+   * have predicted (from the raster) and truth (from labelling) so we
+   * just need to build the confusion matrix.
+   *
+   * Excel / PDF outputs are derived from a single user-picked stem so
+   * both share the same base name.
+   */
+  const computeFromPoints = async (stem?: string) => {
+    if (!labelFile) {
+      setErr("Pick a labelled validation-points .gpkg first.");
+      return;
+    }
+    setErr(null);
+    setResult(null);
+    setBusy(true);
+    const pdfPath = stem ? stem.replace(/\.(pdf|xlsx)$/i, "") + ".pdf" : null;
+    const xlsxPath = stem && emitXlsx ? stem.replace(/\.(pdf|xlsx)$/i, "") + ".xlsx" : null;
+    const r = await invoke<{ job_id: string }>("accuracy.run_on_points", {
+      points_path: labelFile,
+      output_pdf: pdfPath,
+      output_xlsx: xlsxPath,
+    });
+    if (r.ok && r.result?.job_id) {
+      setJobId(r.result.job_id);
+    } else {
+      setBusy(false);
+      setErr(r.error ?? "accuracy.run_on_points failed");
+    }
+  };
+
+  /** "Compute & show metrics" — no file output, just the inline display. */
+  const computeFromPointsInline = () => computeFromPoints(undefined);
+
+  /** "Compute + save report" — asks for a save path then runs. */
+  const computeFromPointsAndSave = async () => {
+    const r = await invoke<{ path: string }>("dialog.save_file", {
+      default: "terranova_accuracy.pdf",
+      title: "Save accuracy report",
+      filter: "PDF (*.pdf)",
+    });
+    if (!r.ok || !r.result?.path) return;
+    void computeFromPoints(r.result.path);
+  };
+
   return (
     <section className="max-w-2xl">
       <div className="flex items-baseline justify-between mb-3">
@@ -341,12 +415,38 @@ export function Accuracy() {
           Refresh layers ↻
         </button>
       </div>
+      {/* Mode toggle — vector path (existing) vs points path (new). */}
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-xs text-fg-muted">Source</span>
+        <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
+          <button
+            onClick={() => setMode("vector")}
+            className={
+              "px-3 py-1 text-xs border-r border-bg-2 " +
+              (mode === "vector" ? "bg-accent text-white" : "hover:bg-bg-0")
+            }
+          >
+            Use a validation vector
+          </button>
+          <button
+            onClick={() => setMode("points")}
+            className={
+              "px-3 py-1 text-xs " +
+              (mode === "points" ? "bg-accent text-white" : "hover:bg-bg-0")
+            }
+          >
+            Generate &amp; label random points
+          </button>
+        </div>
+      </div>
+
       <p className="text-fg-muted text-sm mb-4">
-        Samples the classified raster at every pixel covered by a validation
-        vector, computes confusion matrix / OA / κ / per-class metrics, and
-        renders a one-page PDF (and optionally an Excel workbook).
+        {mode === "vector"
+          ? "Samples the classified raster at every pixel covered by a held-out validation vector, computes confusion matrix / OA / κ / per-class metrics, renders a PDF (and optionally Excel)."
+          : "Generates a random sample of points from a classified raster, walks you through labelling each one against the imagery, then computes OA / κ / per-class metrics directly from the labelled points — no separate validation vector needed."}
       </p>
 
+      {mode === "vector" && (
       <div className="grid grid-cols-1 gap-3">
         <Field label="Classified raster">
           <select
@@ -420,7 +520,10 @@ export function Accuracy() {
           </label>
         </Field>
       </div>
+      )}
 
+      {mode === "points" && (
+      <>
       {/* Generate validation points -------------------------------------- */}
       <div className="mt-5 bg-bg-1 border border-bg-2 rounded-md p-3">
         <h3 className="text-sm font-semibold mb-1">
@@ -610,8 +713,48 @@ export function Accuracy() {
             onExit={stopLabelling}
           />
         )}
-      </div>
 
+        {/* Step 3: Compute accuracy directly from the labelled points'
+            predicted vs truth columns.  No vector-on-raster sampling
+            needed — the confusion matrix raw data is right there. */}
+        <hr className="border-bg-2 my-4" />
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-fg-muted mb-1">
+          Step 3 — Compute accuracy
+        </h4>
+        <p className="text-xs text-fg-muted mb-3">
+          Builds the confusion matrix from the labelled points' <code>predicted</code>{" "}
+          vs <code>truth</code>. Unlabelled points (where <code>truth = 0</code>)
+          are skipped.
+        </p>
+        <label className="flex items-center gap-2 mb-3 text-xs text-fg-muted cursor-pointer">
+          <input
+            type="checkbox"
+            checked={emitXlsx}
+            onChange={(e) => setEmitXlsx(e.target.checked)}
+          />
+          Also export an Excel workbook when saving the report
+        </label>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={computeFromPointsInline}
+            disabled={!labelFile || busy}
+            className="px-3 py-1.5 bg-accent text-white rounded text-xs disabled:opacity-50"
+          >
+            {busy ? "Computing…" : "Compute & show metrics"}
+          </button>
+          <button
+            onClick={computeFromPointsAndSave}
+            disabled={!labelFile || busy}
+            className="px-3 py-1.5 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded text-xs disabled:opacity-50"
+          >
+            Compute + save PDF / Excel…
+          </button>
+        </div>
+      </div>
+      </>
+      )}
+
+      {mode === "vector" && (
       <div className="flex gap-2 mt-4">
         <button
           onClick={run}
@@ -621,6 +764,7 @@ export function Accuracy() {
           {busy ? "Running…" : "Generate report"}
         </button>
       </div>
+      )}
 
       {err && <p className="text-danger text-sm mt-3">{err}</p>}
 
@@ -639,13 +783,23 @@ export function Accuracy() {
       {result && (
         <div className="mt-4 bg-bg-1 border border-bg-2 rounded-md p-4 text-sm">
           <div className="grid grid-cols-3 gap-3">
-            <Stat label="Overall accuracy" value={result.overall_accuracy.toFixed(3)} />
+            <Stat
+              label="Overall accuracy"
+              value={result.overall_accuracy.toFixed(3)}
+            />
             <Stat label="Kappa (κ)" value={result.kappa.toFixed(3)} />
             <Stat label="N samples" value={String(result.n_samples)} />
           </div>
-          <p className="text-fg-muted text-xs mt-3 font-mono break-all">
-            {result.output_path}
-          </p>
+
+          {result.report && result.report.class_labels.length > 0 && (
+            <PerClassTable report={result.report} />
+          )}
+
+          {result.output_path && (
+            <p className="text-fg-muted text-xs mt-3 font-mono break-all">
+              {result.output_path}
+            </p>
+          )}
           {result.output_xlsx && (
             <p className="text-fg-muted text-xs mt-1 font-mono break-all">
               {result.output_xlsx}
@@ -654,6 +808,49 @@ export function Accuracy() {
         </div>
       )}
     </section>
+  );
+}
+
+/* -------------------------------------------------------------------- */
+/* Per-class metrics table — UA, PA, F1                                 */
+/* -------------------------------------------------------------------- */
+function PerClassTable({ report }: { report: ReportPayload }) {
+  const fmt = (v: number | null) =>
+    v === null || Number.isNaN(v) ? "—" : v.toFixed(3);
+  return (
+    <div className="mt-4">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-fg-muted mb-1">
+        Per-class metrics
+      </h4>
+      <table className="w-full text-xs font-mono">
+        <thead className="text-fg-muted">
+          <tr>
+            <th className="text-left font-normal py-1">Class</th>
+            <th className="text-right font-normal py-1" title="User's accuracy = diag / row total — when the classifier predicted this class, how often was it right?">
+              UA
+            </th>
+            <th className="text-right font-normal py-1" title="Producer's accuracy = diag / col total — when the truth was this class, how often did the classifier find it?">
+              PA
+            </th>
+            <th className="text-right font-normal py-1">F1</th>
+          </tr>
+        </thead>
+        <tbody>
+          {report.class_labels.map((cls, i) => (
+            <tr key={cls} className="border-t border-bg-2">
+              <td className="py-1">{cls}</td>
+              <td className="text-right py-1">{fmt(report.users_accuracy[i])}</td>
+              <td className="text-right py-1">{fmt(report.producers_accuracy[i])}</td>
+              <td className="text-right py-1">{fmt(report.f1_per_class[i])}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-fg-muted/70 text-xs mt-1">
+        UA = user's accuracy (1 − commission error).  PA = producer's
+        accuracy (1 − omission error).
+      </p>
+    </div>
   );
 }
 

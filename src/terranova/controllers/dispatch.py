@@ -70,6 +70,7 @@ class Controllers:
 
         self._handlers["classify.run"] = _classify.run
         self._handlers["accuracy.run"] = _accuracy.run
+        self._handlers["accuracy.run_on_points"] = _accuracy.run_on_points
         self._handlers["accuracy.generate_points"] = _accuracy.generate_points
         self._handlers["accuracy.probe_classes"] = _accuracy.probe_classes
 
