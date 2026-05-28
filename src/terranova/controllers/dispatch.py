@@ -71,6 +71,7 @@ class Controllers:
         self._handlers["classify.run"] = _classify.run
         self._handlers["accuracy.run"] = _accuracy.run
         self._handlers["accuracy.generate_points"] = _accuracy.generate_points
+        self._handlers["accuracy.probe_classes"] = _accuracy.probe_classes
 
         # Interactive point-by-point labelling (the workflow that turns
         # generated validation points into truth labels for the

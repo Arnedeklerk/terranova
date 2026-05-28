@@ -42,6 +42,30 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     return {"job_id": job_id}
 
 
+def probe_classes(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the unique class codes present in a classified raster.
+
+    Used by the points-generator UI to show the user how many classes
+    they're sampling against BEFORE they pick stratified / equalized
+    parameters.  Cheap (single rasterio read + np.unique).
+    """
+    try:
+        raster_path = Path(payload["raster_path"])
+    except KeyError as exc:
+        raise ValueError(f"missing required field: {exc}") from exc
+
+    import numpy as np
+    import rasterio
+
+    with rasterio.open(str(raster_path)) as src:
+        arr = src.read(1)
+        nodata = {0}
+        if src.nodata is not None:
+            nodata.add(int(src.nodata))
+        classes = sorted(int(c) for c in np.unique(arr) if int(c) not in nodata)
+    return {"classes": classes, "n_classes": len(classes)}
+
+
 def generate_points(payload: dict[str, Any]) -> dict[str, Any]:
     """Sample validation points from a classified raster.
 

@@ -55,12 +55,41 @@ export function Accuracy() {
 
   // Excel output toggle (default ON — most users want it).
   const [emitXlsx, setEmitXlsx] = useState(true);
-  // Random-point generator state.
+  // Random-point generator state.  Has its OWN raster picker (separate
+  // from the report's "Classified raster") so users can build a
+  // validation set for any raster without first changing the report
+  // setup above.
+  const [genRasterSrc, setGenRasterSrc] = useState<string>("");
+  const [genClasses, setGenClasses] = useState<number[]>([]);
   const [strategy, setStrategy] = useState<SamplingStrategy>("stratified");
   const [nTotal, setNTotal] = useState(300);
   const [pointsPerClass, setPointsPerClass] = useState(30);
+  const [genOutPath, setGenOutPath] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [genMsg, setGenMsg] = useState<string | null>(null);
+  const [genErr, setGenErr] = useState<string | null>(null);
+
+  // Probe class codes whenever the generator's raster changes so the
+  // user can see "found 7 classes" before they commit to a strategy.
+  useEffect(() => {
+    if (!genRasterSrc) {
+      setGenClasses([]);
+      return;
+    }
+    invoke<{ classes: number[]; n_classes: number }>("accuracy.probe_classes", {
+      raster_path: genRasterSrc,
+    }).then((r) => {
+      if (r.ok && r.result) setGenClasses(r.result.classes);
+      else setGenClasses([]);
+    });
+  }, [genRasterSrc]);
+
+  // Default the generator's raster to whatever the user picked for the
+  // report — but only once, so they can override it independently.
+  useEffect(() => {
+    if (rasterSrc && !genRasterSrc) setGenRasterSrc(rasterSrc);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rasterSrc]);
 
   // Labelling-mode state.  Driven by accuracy.label.start which returns
   // every point's coords + predicted/truth + the available class codes.
@@ -159,51 +188,56 @@ export function Accuracy() {
   };
 
   /**
-   * Sample validation points from a classified raster.  The classified
-   * raster is whatever the user has picked above — the point file gets
-   * dropped in and loaded as a layer, ready to edit `truth` on each
-   * feature.  Synchronous in the backend (sub-second for typical
-   * raster sizes), no QgsTask plumbing needed.
+   * Sample validation points from the generator's raster pick.
+   * Synchronous backend (sub-second on typical classification COGs),
+   * so no QgsTask plumbing — but we still flip a `generating` flag so
+   * the button visibly toggles to "Sampling…" while the bridge call
+   * is in flight.
    */
   const generatePoints = async () => {
-    if (!rasterSrc) {
-      setErr("Pick a classified raster first.");
+    setGenErr(null);
+    setGenMsg(null);
+    if (!genRasterSrc) {
+      setGenErr("Pick a classified raster for the generator.");
       return;
     }
-    const r = await invoke<{ path: string }>("dialog.save_file", {
-      default: `validation_points_${strategy}.gpkg`,
-      title: "Save validation points",
-      filter: "GeoPackage (*.gpkg)",
-    });
-    if (!r.ok || !r.result?.path) return;
-
-    setErr(null);
+    if (!genOutPath) {
+      setGenErr("Pick a 'Save to' path for the .gpkg output.");
+      return;
+    }
     setGenerating(true);
-    setGenMsg(null);
     const out = await invoke<{
       n_points: number;
       output_path: string;
       classes_sampled: number[];
     }>("accuracy.generate_points", {
-      raster_path: rasterSrc,
-      out_path: r.result.path,
+      raster_path: genRasterSrc,
+      out_path: genOutPath,
       strategy,
       n_total: nTotal,
       points_per_class: pointsPerClass,
     });
     setGenerating(false);
     if (!out.ok || !out.result) {
-      setErr(out.error ?? "accuracy.generate_points failed");
+      setGenErr(out.error ?? "accuracy.generate_points failed");
       return;
     }
     setGenMsg(
-      `Wrote ${out.result.n_points} points across ${out.result.classes_sampled.length} classes — ` +
-        "start the point-by-point labelling below, or edit truth manually in QGIS.",
+      `Wrote ${out.result.n_points} points across ${out.result.classes_sampled.length} classes. ` +
+        "Auto-loaded as a layer; jump into 'Label points' below to start.",
     );
-    // Auto-fill the labelling file picker with the freshly-generated
-    // path so the user can jump straight into labelling without finding
-    // the file again.
+    // Auto-fill the labelling file picker so the user can jump straight in.
     setLabelFile(out.result.output_path);
+  };
+
+  /** "Browse..." for the points-generator output path. */
+  const pickGenOutPath = async () => {
+    const r = await invoke<{ path: string }>("dialog.save_file", {
+      default: `validation_points_${strategy}.gpkg`,
+      title: "Save validation points",
+      filter: "GeoPackage (*.gpkg)",
+    });
+    if (r.ok && r.result?.path) setGenOutPath(r.result.path);
   };
 
   // ----------------- labelling mode --------------------------------------
@@ -393,64 +427,130 @@ export function Accuracy() {
           Generate validation points
         </h3>
         <p className="text-xs text-fg-muted mb-3">
-          Sample points from the classified raster to use as a validation
-          vector. The output .gpkg has a <code>predicted</code> column already
-          filled in from the raster — edit the <code>truth</code> column in
-          QGIS, then point this panel at it.
+          Sample points from a classified raster to use as a validation
+          vector. The output .gpkg has a <code>predicted</code> column
+          pre-filled from the raster — fill <code>truth</code> via the
+          point-by-point pad below, or edit in QGIS directly.
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Strategy" hint={STRATEGY_HINTS[strategy]}>
+
+        <div className="grid grid-cols-1 gap-3">
+          <Field
+            label="Classified raster to sample from"
+            hint="Stratified / equalized strategies need the class count from this raster — pick first."
+          >
             <select
-              value={strategy}
-              onChange={(e) => setStrategy(e.target.value as SamplingStrategy)}
+              value={genRasterSrc}
+              onChange={(e) => setGenRasterSrc(e.target.value)}
               className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
             >
-              {(Object.keys(STRATEGY_LABELS) as SamplingStrategy[]).map(
-                (k) => (
-                  <option key={k} value={k}>
-                    {STRATEGY_LABELS[k]}
-                  </option>
-                ),
-              )}
+              <option value="">— pick a raster layer —</option>
+              {rasters.map((l) => (
+                <option key={l.source} value={l.source}>
+                  {l.name}
+                </option>
+              ))}
             </select>
+            {genRasterSrc && (
+              <span className="text-xs text-fg-muted/80 mt-0.5">
+                {genClasses.length > 0
+                  ? `Detected ${genClasses.length} class${genClasses.length === 1 ? "" : "es"}: ${genClasses.slice(0, 12).join(", ")}${genClasses.length > 12 ? "…" : ""}`
+                  : "Probing classes…"}
+              </span>
+            )}
           </Field>
-          {strategy === "equalized_stratified" ? (
-            <Field label="Points per class">
-              <input
-                type="number"
-                value={pointsPerClass}
-                min={2}
-                max={500}
-                onChange={(e) =>
-                  setPointsPerClass(parseInt(e.target.value, 10) || 0)
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Strategy" hint={STRATEGY_HINTS[strategy]}>
+              <select
+                value={strategy}
+                onChange={(e) => setStrategy(e.target.value as SamplingStrategy)}
+                className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
+              >
+                {(Object.keys(STRATEGY_LABELS) as SamplingStrategy[]).map(
+                  (k) => (
+                    <option key={k} value={k}>
+                      {STRATEGY_LABELS[k]}
+                    </option>
+                  ),
+                )}
+              </select>
+            </Field>
+            {strategy === "equalized_stratified" ? (
+              <Field
+                label="Points per class"
+                hint={
+                  genClasses.length
+                    ? `→ ${pointsPerClass * genClasses.length} points total`
+                    : ""
                 }
-                className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
-              />
-            </Field>
-          ) : (
-            <Field label="Total points">
+              >
+                <input
+                  type="number"
+                  value={pointsPerClass}
+                  min={2}
+                  max={500}
+                  onChange={(e) =>
+                    setPointsPerClass(parseInt(e.target.value, 10) || 0)
+                  }
+                  className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+                />
+              </Field>
+            ) : (
+              <Field
+                label="Total points"
+                hint={
+                  strategy === "stratified" && genClasses.length
+                    ? `≈ ${Math.round(nTotal / genClasses.length)} per class (proportional, with a floor)`
+                    : ""
+                }
+              >
+                <input
+                  type="number"
+                  value={nTotal}
+                  min={10}
+                  max={5000}
+                  step={50}
+                  onChange={(e) => setNTotal(parseInt(e.target.value, 10) || 0)}
+                  className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+                />
+              </Field>
+            )}
+          </div>
+
+          <Field label="Save to">
+            <div className="flex gap-2">
               <input
-                type="number"
-                value={nTotal}
-                min={10}
-                max={5000}
-                step={50}
-                onChange={(e) => setNTotal(parseInt(e.target.value, 10) || 0)}
-                className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+                type="text"
+                value={genOutPath}
+                placeholder="(pick a .gpkg path…)"
+                onChange={(e) => setGenOutPath(e.target.value)}
+                className="flex-1 bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono text-xs"
               />
-            </Field>
-          )}
+              <button
+                onClick={pickGenOutPath}
+                className="px-3 py-1 bg-bg-1 hover:bg-bg-2 border border-bg-2 rounded text-sm"
+              >
+                Browse…
+              </button>
+            </div>
+          </Field>
         </div>
+
         <div className="flex gap-2 mt-3 items-center">
           <button
             onClick={generatePoints}
-            disabled={!rasterSrc || generating}
-            className="px-3 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded text-xs disabled:opacity-50"
+            disabled={!genRasterSrc || !genOutPath || generating}
+            className="px-3 py-1.5 bg-accent text-white rounded text-xs disabled:opacity-50"
           >
             {generating ? "Sampling…" : "Generate points"}
           </button>
-          {genMsg && <span className="text-xs text-fg-muted">{genMsg}</span>}
+          {genMsg && (
+            <span className="text-xs text-fg-muted">{genMsg}</span>
+          )}
         </div>
+        {genErr && (
+          <p className="text-danger text-xs mt-2">{genErr}</p>
+        )}
       </div>
 
       {/* Label points (interactive step-through) ------------------------- */}
