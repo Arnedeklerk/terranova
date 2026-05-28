@@ -25,27 +25,59 @@ interface LayerInfo {
   source: string;
 }
 
-const CLASSIFIERS: Array<{ label: string; value: string }> = [
-  { label: "Random Forest", value: "random_forest" },
-  { label: "Extra Trees", value: "extra_trees" },
-  { label: "Gradient Boosting", value: "gradient_boosting" },
-  { label: "LightGBM", value: "lightgbm" },
-  { label: "XGBoost", value: "xgboost" },
-  { label: "K-Nearest Neighbours", value: "knn" },
-  { label: "Logistic Regression", value: "logistic_regression" },
-  { label: "Multi-layer Perceptron", value: "mlp" },
+const CLASSIFIERS: Array<{ label: string; value: string; hint: string }> = [
+  {
+    label: "Random Forest",
+    value: "random_forest",
+    hint: "Ensemble of decision trees on bootstrap samples with random feature subsets. Robust to noisy bands, handles non-linear class boundaries, low tuning effort. Slower than LightGBM/XGBoost on large rasters. Good first choice.",
+  },
+  {
+    label: "Extra Trees",
+    value: "extra_trees",
+    hint: "Like Random Forest but splits use random thresholds instead of the best ones. Trains faster, slightly higher variance. Sometimes generalises better when training polygons have noisy edges.",
+  },
+  {
+    label: "Gradient Boosting",
+    value: "gradient_boosting",
+    hint: "Builds trees sequentially, each correcting the previous one's errors. Usually higher accuracy than RF; more tuning-sensitive and easier to overfit on small training sets.",
+  },
+  {
+    label: "LightGBM",
+    value: "lightgbm",
+    hint: "Microsoft's histogram-based gradient boosting — much faster than scikit-learn's gradient boosting and typically the top accuracy on tabular data. Needs a sensible learning rate + n_estimators combo.",
+  },
+  {
+    label: "XGBoost",
+    value: "xgboost",
+    hint: "Mature gradient boosting with strong regularisation. Very competitive accuracy, slightly slower than LightGBM. The industry standard for tabular-data ML competitions.",
+  },
+  {
+    label: "K-Nearest Neighbours",
+    value: "knn",
+    hint: "Predicts each pixel from the K nearest training samples in band space — no real 'training', it just memorises. Slow at inference, very sensitive to band scaling. Useful as a baseline; rarely the best choice on imagery.",
+  },
+  {
+    label: "Logistic Regression",
+    value: "logistic_regression",
+    hint: "Linear model with a softmax output per class. Fast and interpretable but low capacity — works when classes are roughly linearly separable in band space, struggles with complex spectral mixtures.",
+  },
+  {
+    label: "Multi-layer Perceptron",
+    value: "mlp",
+    hint: "Small feedforward neural network. Can capture non-linear band relationships; needs more training pixels than tree methods to outperform them and is sensitive to band scaling. Slower training on the kind of tabular data we have here.",
+  },
 ];
 
 const UNSUPERVISED_ALGS: Array<{ label: string; value: string; hint: string }> = [
   {
     label: "K-Means (nearest centroid)",
     value: "kmeans",
-    hint: "Fixed K clusters; each pixel goes to its nearest cluster centroid.",
+    hint: "Iteratively assigns pixels to K cluster centres then updates the centres to be the mean of their members. Fixed K (no auto-adjustment), fast, deterministic given a seed. Best when you have a reasonable guess at the right number of classes.",
   },
   {
     label: "ISODATA",
     value: "isodata",
-    hint: "K-Means with iterative split (on high variance) + merge (on close centroids); final K can differ from the target.",
+    hint: "K-Means with iterative split + merge: splits high-variance clusters (along the band of max stdev) and merges centroid pairs that are too close. Final cluster count adapts to the data — set the target as a starting point, expect the result to differ.",
   },
 ];
 
@@ -300,7 +332,12 @@ export function Classify() {
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Classifier">
+              <Field
+                label="Classifier"
+                hint={
+                  CLASSIFIERS.find((c) => c.value === classifier)?.hint ?? ""
+                }
+              >
                 <select
                   value={classifier}
                   onChange={(e) => setClassifier(e.target.value)}
@@ -456,13 +493,23 @@ interface FieldProps {
   children: React.ReactNode;
 }
 function Field({ label, hint, children }: FieldProps) {
+  // Short hints (<80 chars) stay inline next to the label as before.
+  // Longer ones — like the 2-4 sentence classifier descriptions — go
+  // below the input as a block so they wrap cleanly without making the
+  // label row two lines tall.
+  const longHint = !!hint && hint.length >= 80;
   return (
     <label className="flex flex-col gap-1 text-xs text-fg-muted">
       <span>
         {label}
-        {hint && <span className="ml-2 text-fg-muted/70">— {hint}</span>}
+        {hint && !longHint && (
+          <span className="ml-2 text-fg-muted/70">— {hint}</span>
+        )}
       </span>
       {children}
+      {hint && longHint && (
+        <span className="text-fg-muted/70 leading-snug mt-0.5">{hint}</span>
+      )}
     </label>
   );
 }
