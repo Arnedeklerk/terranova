@@ -16,10 +16,27 @@ interface LayerInfo {
 
 interface AccuracyResult {
   output_path: string;
+  output_xlsx?: string | null;
   overall_accuracy: number;
   kappa: number;
   n_samples: number;
 }
+
+type SamplingStrategy = "random" | "stratified" | "equalized_stratified";
+
+const STRATEGY_LABELS: Record<SamplingStrategy, string> = {
+  random: "Random",
+  stratified: "Stratified random (proportional)",
+  equalized_stratified: "Equalized stratified random",
+};
+const STRATEGY_HINTS: Record<SamplingStrategy, string> = {
+  random:
+    "Uniformly random points across all valid pixels.  Easy to reason about; large classes dominate the sample, rare classes can be missed entirely.",
+  stratified:
+    "Points per class are proportional to that class's pixel count, with a floor so rare classes still get tested.  Standard Olofsson-style design for OA estimation.",
+  equalized_stratified:
+    "Same N points per class regardless of class size.  Best for evaluating rare classes — gives every class equal evidence in the confusion matrix.",
+};
 
 export function Accuracy() {
   const [rasters, setRasters] = useState<LayerInfo[]>([]);
@@ -35,6 +52,15 @@ export function Accuracy() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<AccuracyResult | null>(null);
+
+  // Excel output toggle (default ON — most users want it).
+  const [emitXlsx, setEmitXlsx] = useState(true);
+  // Random-point generator state.
+  const [strategy, setStrategy] = useState<SamplingStrategy>("stratified");
+  const [nTotal, setNTotal] = useState(300);
+  const [pointsPerClass, setPointsPerClass] = useState(30);
+  const [generating, setGenerating] = useState(false);
+  const [genMsg, setGenMsg] = useState<string | null>(null);
 
   const refreshLayers = async () => {
     const [r, v] = await Promise.all([
@@ -83,11 +109,18 @@ export function Accuracy() {
     setErr(null);
     setResult(null);
     setBusy(true);
+
+    // Auto-derive an .xlsx path next to the PDF when the user opted in.
+    const xlsxPath = emitXlsx
+      ? outputPdf.replace(/\.pdf$/i, "") + ".xlsx"
+      : null;
+
     const r = await invoke<{ job_id: string }>("accuracy.run", {
       raster_path: rasterSrc,
       vector_path: vectorSrc,
       class_field: classField,
       output_pdf: outputPdf,
+      output_xlsx: xlsxPath,
     });
     if (r.ok && r.result?.job_id) {
       setJobId(r.result.job_id);
@@ -95,6 +128,50 @@ export function Accuracy() {
       setBusy(false);
       setErr(r.error ?? "accuracy.run failed");
     }
+  };
+
+  /**
+   * Sample validation points from a classified raster.  The classified
+   * raster is whatever the user has picked above — the point file gets
+   * dropped in and loaded as a layer, ready to edit `truth` on each
+   * feature.  Synchronous in the backend (sub-second for typical
+   * raster sizes), no QgsTask plumbing needed.
+   */
+  const generatePoints = async () => {
+    if (!rasterSrc) {
+      setErr("Pick a classified raster first.");
+      return;
+    }
+    const r = await invoke<{ path: string }>("dialog.save_file", {
+      default: `validation_points_${strategy}.gpkg`,
+      title: "Save validation points",
+      filter: "GeoPackage (*.gpkg)",
+    });
+    if (!r.ok || !r.result?.path) return;
+
+    setErr(null);
+    setGenerating(true);
+    setGenMsg(null);
+    const out = await invoke<{
+      n_points: number;
+      output_path: string;
+      classes_sampled: number[];
+    }>("accuracy.generate_points", {
+      raster_path: rasterSrc,
+      out_path: r.result.path,
+      strategy,
+      n_total: nTotal,
+      points_per_class: pointsPerClass,
+    });
+    setGenerating(false);
+    if (!out.ok || !out.result) {
+      setErr(out.error ?? "accuracy.generate_points failed");
+      return;
+    }
+    setGenMsg(
+      `Wrote ${out.result.n_points} points across ${out.result.classes_sampled.length} classes — ` +
+        "edit the `truth` column on each point in QGIS, then run the accuracy report.",
+    );
   };
 
   return (
@@ -111,7 +188,7 @@ export function Accuracy() {
       <p className="text-fg-muted text-sm mb-4">
         Samples the classified raster at every pixel covered by a validation
         vector, computes confusion matrix / OA / κ / per-class metrics, and
-        renders a one-page PDF.
+        renders a one-page PDF (and optionally an Excel workbook).
       </p>
 
       <div className="grid grid-cols-1 gap-3">
@@ -177,7 +254,81 @@ export function Accuracy() {
               Browse…
             </button>
           </div>
+          <label className="flex items-center gap-2 mt-1.5 text-xs text-fg-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={emitXlsx}
+              onChange={(e) => setEmitXlsx(e.target.checked)}
+            />
+            Also export an Excel workbook (same path, .xlsx suffix)
+          </label>
         </Field>
+      </div>
+
+      {/* Generate validation points -------------------------------------- */}
+      <div className="mt-5 bg-bg-1 border border-bg-2 rounded-md p-3">
+        <h3 className="text-sm font-semibold mb-1">
+          Generate validation points
+        </h3>
+        <p className="text-xs text-fg-muted mb-3">
+          Sample points from the classified raster to use as a validation
+          vector. The output .gpkg has a <code>predicted</code> column already
+          filled in from the raster — edit the <code>truth</code> column in
+          QGIS, then point this panel at it.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Strategy" hint={STRATEGY_HINTS[strategy]}>
+            <select
+              value={strategy}
+              onChange={(e) => setStrategy(e.target.value as SamplingStrategy)}
+              className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1"
+            >
+              {(Object.keys(STRATEGY_LABELS) as SamplingStrategy[]).map(
+                (k) => (
+                  <option key={k} value={k}>
+                    {STRATEGY_LABELS[k]}
+                  </option>
+                ),
+              )}
+            </select>
+          </Field>
+          {strategy === "equalized_stratified" ? (
+            <Field label="Points per class">
+              <input
+                type="number"
+                value={pointsPerClass}
+                min={2}
+                max={500}
+                onChange={(e) =>
+                  setPointsPerClass(parseInt(e.target.value, 10) || 0)
+                }
+                className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+              />
+            </Field>
+          ) : (
+            <Field label="Total points">
+              <input
+                type="number"
+                value={nTotal}
+                min={10}
+                max={5000}
+                step={50}
+                onChange={(e) => setNTotal(parseInt(e.target.value, 10) || 0)}
+                className="w-full bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono"
+              />
+            </Field>
+          )}
+        </div>
+        <div className="flex gap-2 mt-3 items-center">
+          <button
+            onClick={generatePoints}
+            disabled={!rasterSrc || generating}
+            className="px-3 py-1 bg-bg-2 hover:bg-bg-0 border border-bg-2 rounded text-xs disabled:opacity-50"
+          >
+            {generating ? "Sampling…" : "Generate points"}
+          </button>
+          {genMsg && <span className="text-xs text-fg-muted">{genMsg}</span>}
+        </div>
       </div>
 
       <div className="flex gap-2 mt-4">
@@ -214,6 +365,11 @@ export function Accuracy() {
           <p className="text-fg-muted text-xs mt-3 font-mono break-all">
             {result.output_path}
           </p>
+          {result.output_xlsx && (
+            <p className="text-fg-muted text-xs mt-1 font-mono break-all">
+              {result.output_xlsx}
+            </p>
+          )}
         </div>
       )}
     </section>
@@ -222,13 +378,25 @@ export function Accuracy() {
 
 interface FieldProps {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }
-function Field({ label, children }: FieldProps) {
+function Field({ label, hint, children }: FieldProps) {
+  // Same rule as the Classify panel's Field: short hints inline next to
+  // the label, long ones (>=80 chars) wrap as a block below the input.
+  const longHint = !!hint && hint.length >= 80;
   return (
     <label className="flex flex-col gap-1 text-xs text-fg-muted">
-      {label}
+      <span>
+        {label}
+        {hint && !longHint && (
+          <span className="ml-2 text-fg-muted/70">— {hint}</span>
+        )}
+      </span>
       {children}
+      {hint && longHint && (
+        <span className="text-fg-muted/70 leading-snug mt-0.5">{hint}</span>
+      )}
     </label>
   );
 }

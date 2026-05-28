@@ -70,6 +70,7 @@ class Controllers:
 
         self._handlers["classify.run"] = _classify.run
         self._handlers["accuracy.run"] = _accuracy.run
+        self._handlers["accuracy.generate_points"] = _accuracy.generate_points
         self._handlers["timeseries.run"] = _timeseries.run
         self._handlers["cdse.signin"] = _cdse.signin
         self._handlers["cdse.status"] = _cdse.status

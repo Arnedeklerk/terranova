@@ -26,16 +26,68 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     except KeyError as exc:
         raise ValueError(f"missing required field: {exc}") from exc
 
+    output_xlsx_raw = payload.get("output_xlsx")
+    output_xlsx = Path(output_xlsx_raw) if output_xlsx_raw else None
+
     task = _build_task(
         job_id=job_id,
         raster_path=raster_path,
         vector_path=vector_path,
         class_field=class_field,
         output_pdf=output_pdf,
+        output_xlsx=output_xlsx,
     )
     _keepalive.hold(job_id, task)
     QgsApplication.taskManager().addTask(task)
     return {"job_id": job_id}
+
+
+def generate_points(payload: dict[str, Any]) -> dict[str, Any]:
+    """Sample validation points from a classified raster.
+
+    Payload:
+      - ``raster_path`` (required): classified raster to sample.
+      - ``out_path``    (required): GeoPackage path to write.
+      - ``strategy``    ('random' | 'stratified' | 'equalized_stratified')
+      - ``n_total``     (random / stratified, default 300)
+      - ``points_per_class`` (equalized, default 30)
+      - ``min_per_class``    (stratified floor, default 5)
+
+    Synchronous — fast enough not to need a QgsTask (we're just reading
+    the raster band, sampling indices, writing N points).  Returns the
+    summary dict from :func:`generate_validation_points` plus a
+    'sampled the file as a layer too' side effect.
+    """
+    from ..core.accuracy.sampling import generate_validation_points
+
+    try:
+        raster_path = Path(payload["raster_path"])
+        out_path = Path(payload["out_path"])
+    except KeyError as exc:
+        raise ValueError(f"missing required field: {exc}") from exc
+
+    strategy = str(payload.get("strategy", "stratified"))
+    result = generate_validation_points(
+        raster_path=raster_path,
+        out_path=out_path,
+        strategy=strategy,  # type: ignore[arg-type]
+        n_total=int(payload.get("n_total", 300)),
+        points_per_class=int(payload.get("points_per_class", 30)),
+        min_per_class=int(payload.get("min_per_class", 5)),
+    )
+
+    # Drop the points layer into the project so the user can immediately
+    # start editing the `truth` column.
+    try:
+        from qgis.core import QgsProject, QgsVectorLayer
+
+        layer = QgsVectorLayer(str(out_path), out_path.stem, "ogr")
+        if layer.isValid():
+            QgsProject.instance().addMapLayer(layer)
+    except Exception:  # noqa: BLE001
+        pass
+
+    return result
 
 
 def _build_task(**kwargs: Any):  # type: ignore[no-untyped-def]
@@ -51,9 +103,11 @@ def _build_task(**kwargs: Any):  # type: ignore[no-untyped-def]
             self.vector_path: Path = kwargs["vector_path"]
             self.class_field: str = kwargs["class_field"]
             self.output_pdf: Path = kwargs["output_pdf"]
+            self.output_xlsx: Path | None = kwargs.get("output_xlsx")
             self.overall: float | None = None
             self.kappa: float | None = None
             self.n_samples: int | None = None
+            self.xlsx_written: Path | None = None
             self.error_text: str | None = None
 
         def run(self) -> bool:
@@ -97,8 +151,20 @@ def _do_accuracy(task: Any) -> bool:
             Qgis.MessageLevel.Info,
         )
 
-        _emit(task, 80, f"Writing PDF to {task.output_pdf.name}…")
+        _emit(task, 70, f"Writing PDF to {task.output_pdf.name}…")
         render_pdf(report, task.output_pdf, title="Terranova — Accuracy report")
+
+        if task.output_xlsx is not None:
+            _emit(task, 85, f"Writing Excel to {task.output_xlsx.name}…")
+            from ..core.accuracy.excel import write_excel_report
+
+            write_excel_report(
+                report,
+                task.output_xlsx,
+                raster_name=task.raster_path.name,
+                vector_name=task.vector_path.name,
+            )
+            task.xlsx_written = task.output_xlsx
         _emit(task, 100, "Done.")
         return True
     except Exception as exc:  # noqa: BLE001
@@ -120,6 +186,9 @@ def _on_finished(task: Any, ok: bool) -> None:
                     "job_id": task.job_id,
                     "result": {
                         "output_path": str(task.output_pdf),
+                        "output_xlsx": str(task.xlsx_written)
+                        if task.xlsx_written
+                        else None,
                         "overall_accuracy": task.overall,
                         "kappa": task.kappa,
                         "n_samples": task.n_samples,
