@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Welcome } from "./panels/Welcome";
 import { CatalogSearch } from "./panels/CatalogSearch";
 import { Classify } from "./panels/Classify";
@@ -18,13 +18,34 @@ import { useUiStore } from "./store/useUiStore";
  * View-switching is local (Zustand store).  The Cmd/Ctrl+K palette overlays
  * regardless of which view is mounted.
  */
+// Stable (default-visible) vs. beta workflows.  The beta ones depend
+// on heavier (and less-stable) dependencies (TerraTorch, segment-
+// geospatial, BFAST, the CDSE OAuth flow), so hiding them by default
+// keeps the dock approachable for new users without removing the
+// capability for power users.
+const STABLE_TABS = ["welcome", "catalog", "classify", "accuracy"] as const;
+const BETA_TABS = ["timeseries", "sam", "foundation", "cdse"] as const;
+const BETA_TABS_SET = new Set<string>(BETA_TABS);
+
 export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [showBeta, setShowBeta] = useState(false);
   const view = useUiStore((s) => s.view);
   const setView = useUiStore((s) => s.setView);
 
   useHotkey(["Meta+k", "Control+k"], () => setPaletteOpen((v) => !v));
   useHotkey(["Escape"], () => setPaletteOpen(false));
+
+  // If the user toggles beta off while sitting on a beta tab, bounce
+  // them to Welcome so the panel doesn't render content for a tab
+  // that no longer exists in the nav.
+  useEffect(() => {
+    if (!showBeta && BETA_TABS_SET.has(view)) setView("welcome");
+  }, [showBeta, view, setView]);
+
+  const visibleTabs = showBeta
+    ? [...STABLE_TABS, ...BETA_TABS]
+    : [...STABLE_TABS];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -33,18 +54,7 @@ export function App() {
         <span className="text-fg-muted text-xs">Earth observation for QGIS</span>
 
         <nav className="ml-6 flex gap-1 text-xs flex-wrap">
-          {(
-            [
-              "welcome",
-              "catalog",
-              "classify",
-              "accuracy",
-              "timeseries",
-              "sam",
-              "foundation",
-              "cdse",
-            ] as const
-          ).map((v) => (
+          {visibleTabs.map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -56,13 +66,29 @@ export function App() {
               }
             >
               {v}
+              {BETA_TABS_SET.has(v) && (
+                <span className="ml-1 text-fg-muted/60 text-[10px]">β</span>
+              )}
             </button>
           ))}
         </nav>
 
-        <div className="ml-auto text-fg-muted text-xs">
-          <kbd className="px-1.5 py-0.5 bg-bg-1 rounded">Ctrl K</kbd>
-          <span className="ml-2">commands</span>
+        <div className="ml-auto flex items-center gap-3 text-xs text-fg-muted">
+          <label
+            className="flex items-center gap-1.5 cursor-pointer select-none"
+            title="Toggle in-development tabs (time-series, SAM, foundation models, CDSE)."
+          >
+            <input
+              type="checkbox"
+              checked={showBeta}
+              onChange={(e) => setShowBeta(e.target.checked)}
+            />
+            <span>Beta features</span>
+          </label>
+          <span>
+            <kbd className="px-1.5 py-0.5 bg-bg-1 rounded">Ctrl K</kbd>
+            <span className="ml-2">commands</span>
+          </span>
         </div>
       </header>
 

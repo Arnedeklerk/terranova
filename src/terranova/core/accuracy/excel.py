@@ -70,10 +70,14 @@ def write_excel_report(
     ws.cell(row=row, column=2, value=int(report.n_samples))
     row += 1
     ws.cell(row=row, column=1, value="Overall accuracy").font = bold
-    ws.cell(row=row, column=2, value=round(float(report.overall_accuracy), 4))
+    ws.cell(
+        row=row,
+        column=2,
+        value=f"{float(report.overall_accuracy) * 100:.1f}%",
+    )
     row += 1
     ws.cell(row=row, column=1, value="Kappa (Cohen)").font = bold
-    ws.cell(row=row, column=2, value=round(float(report.kappa), 4))
+    ws.cell(row=row, column=2, value=round(float(report.kappa), 3))
     row += 2
 
     # Confusion matrix.
@@ -125,8 +129,8 @@ def write_excel_report(
     row += 1
     for i, cls in enumerate(classes):
         ws.cell(row=row, column=1, value=int(cls)).font = bold
-        ws.cell(row=row, column=2, value=_round(report.users_accuracy[i]))
-        ws.cell(row=row, column=3, value=_round(report.producers_accuracy[i]))
+        ws.cell(row=row, column=2, value=_pct(report.users_accuracy[i]))
+        ws.cell(row=row, column=3, value=_pct(report.producers_accuracy[i]))
         ws.cell(row=row, column=4, value=_round(report.f1_per_class[i]))
         row += 1
 
@@ -148,3 +152,12 @@ def _round(v: float, ndigits: int = 4) -> float | str:
     if v is None or (isinstance(v, float) and math.isnan(v)):
         return "n/a"
     return round(float(v), ndigits)
+
+
+def _pct(v: float) -> str:
+    """Render an accuracy in [0,1] as a one-decimal percentage."""
+    import math
+
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return "n/a"
+    return f"{float(v) * 100:.1f}%"

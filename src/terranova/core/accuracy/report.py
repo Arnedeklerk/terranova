@@ -134,8 +134,8 @@ def render_pdf(
     # Summary table
     summary = Table(
         [
-            ["Overall accuracy", f"{report.overall_accuracy:.4f}"],
-            ["Kappa", f"{report.kappa:.4f}"],
+            ["Overall accuracy", f"{report.overall_accuracy * 100:.1f}%"],
+            ["Kappa", f"{report.kappa:.3f}"],
             ["Number of samples", f"{report.n_samples}"],
             ["Number of classes", f"{len(report.class_labels)}"],
         ],
@@ -164,15 +164,16 @@ def render_pdf(
     story.append(Image(img_buf, width=150 * mm, height=110 * mm))
     story.append(Spacer(1, 4 * mm))
 
-    # Per-class table
+    # Per-class table.  UA and PA are accuracies (0-1) so render as
+    # percentages; F1 is a unitless score so stays as a 3-dp decimal.
     rows = [["Class", "User's", "Producer's", "F1"]]
     for i, lbl in enumerate(report.class_labels):
         name = class_names.get(lbl, str(lbl)) if class_names else str(lbl)
         rows.append(
             [
                 name,
-                _fmt(report.users_accuracy[i]),
-                _fmt(report.producers_accuracy[i]),
+                _fmt_pct(report.users_accuracy[i]),
+                _fmt_pct(report.producers_accuracy[i]),
                 _fmt(report.f1_per_class[i]),
             ]
         )
@@ -203,3 +204,12 @@ def _fmt(v: float) -> str:
     if np.isnan(v):
         return "—"
     return f"{v:.3f}"
+
+
+def _fmt_pct(v: float) -> str:
+    """Format an accuracy in [0,1] as a percentage with one decimal."""
+    import numpy as np
+
+    if np.isnan(v):
+        return "—"
+    return f"{v * 100:.1f}%"

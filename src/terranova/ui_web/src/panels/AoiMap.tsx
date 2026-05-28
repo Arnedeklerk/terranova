@@ -178,6 +178,49 @@ export function AoiMap({
       const east = Math.max(start.lng, e.lng);
       abortDraw();
       if (north - south < 1e-5 || east - west < 1e-5) return;
+
+      // CRITICAL: commit the persistent AOI rectangle DIRECTLY here,
+      // not through a React-state round-trip.  Previous attempts to
+      // make this work via setNw -> mapAoi useMemo -> aoi prop ->
+      // useEffect have repeatedly failed for the user even after
+      // multiple "fixes" — at this point the round-trip is clearly
+      // unreliable in their environment.  By contrast, adding the
+      // rectangle directly to the Leaflet map IS reliable: it's
+      // imperative DOM manipulation that can't be silently dropped
+      // by a missed state update or a re-render race.
+      //
+      // The aoi useEffect still runs when the user types into the
+      // corner fields, so this isn't redundant — that path keeps
+      // the rectangle in sync with typed input.  The direct call
+      // here just removes the dependency on that path for the
+      // common case of drawing the AOI on the map.
+      if (aoiLayerRef.current) {
+        aoiLayerRef.current.remove();
+        aoiLayerRef.current = null;
+      }
+      const bounds = L.latLngBounds([south, west], [north, east]);
+      aoiLayerRef.current = L.rectangle(bounds, {
+        color: "#FF9E2F",
+        weight: 3,
+        dashArray: "8 4",
+        // Tiny tinted fill so the AOI is visible even when the user
+        // is zoomed out and the dashed stroke is just a thin orange
+        // line.  10% alpha = barely there but unmistakable.
+        fill: true,
+        fillColor: "#FF9E2F",
+        fillOpacity: 0.1,
+        interactive: false,
+        renderer: L.svg(),
+      }).addTo(map);
+      // Diagnostic — if the AOI ever fails to appear again, the
+      // DevTools console will tell us exactly which step ran and what
+      // bounds were used.  Cheap to leave in.
+      console.log("[AOI] committed rectangle", {
+        bounds: { south, west, north, east },
+      });
+
+      // Sync the corner fields too (in parallel; this update no
+      // longer affects the rectangle's existence).
       onAoiChangeRef.current({ west, south, east, north });
     };
 
@@ -318,19 +361,16 @@ export function AoiMap({
     );
     aoiLayerRef.current = L.rectangle(bounds, {
       color: "#FF9E2F",
-      weight: 2,
-      dashArray: "6 4",
-      fill: false,
+      weight: 3,
+      dashArray: "8 4",
+      fill: true,
+      fillColor: "#FF9E2F",
+      fillOpacity: 0.1,
       // Match the temp drag rectangle — don't let the AOI eat clicks
       // that should reach the map (e.g. starting a new draw on top
       // of the existing rectangle).
       interactive: false,
-      // Force SVG renderer for this one static overlay even though
-      // the map uses canvas by default — canvas rendering of a single
-      // dashed-stroke-only rectangle has been unreliable in QtWebEngine
-      // embeds (occasionally renders blank).  SVG is bulletproof for
-      // single static overlays and the perf cost (one extra DOM node)
-      // is irrelevant compared to the footprints, which keep canvas.
+      // Force SVG renderer.  See the matching note in completeDraw.
       renderer: L.svg(),
     }).addTo(map);
     // Fit the bounds with a bit of padding, but only if the bounds are
