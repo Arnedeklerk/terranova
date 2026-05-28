@@ -551,15 +551,23 @@ export function Accuracy() {
         {genErr && (
           <p className="text-danger text-xs mt-2">{genErr}</p>
         )}
-      </div>
 
-      {/* Label points (interactive step-through) ------------------------- */}
-      <div className="mt-5 bg-bg-1 border border-bg-2 rounded-md p-3">
-        <h3 className="text-sm font-semibold mb-1">Label points</h3>
+        {/* Step 2: label.  Visually a sub-block inside this same section
+            (separated by a thin divider) so the user reads it as
+            'generate → then label'. */}
+        <hr className="border-bg-2 my-4" />
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-fg-muted mb-1">
+          Step 2 — Label points
+        </h4>
         <p className="text-xs text-fg-muted mb-3">
-          Step through each validation point — the QGIS canvas pans to it,
-          a red cross marks it, and you pick the actual ground-truth class.
-          Saves to the file after every pick, so you can stop and resume.
+          Step through each point — the QGIS canvas pans to it, a red
+          cross marks it, and you pick the actual ground-truth class.
+          Auto-saves after every pick; close and resume any time.
+          {labelFile && labelFile === genOutPath && (
+            <span className="block mt-1 text-fg-muted/80">
+              Using the file you just generated above.
+            </span>
+          )}
         </p>
 
         {!labelActive && (
@@ -569,7 +577,7 @@ export function Accuracy() {
                 <input
                   type="text"
                   value={labelFile}
-                  placeholder="(pick a .gpkg from disk, or generate one above)"
+                  placeholder="(generate above, or pick a .gpkg from disk)"
                   onChange={(e) => setLabelFile(e.target.value)}
                   className="flex-1 bg-bg-1 border border-bg-2 rounded px-2 py-1 font-mono text-xs"
                 />
@@ -584,7 +592,7 @@ export function Accuracy() {
             <button
               onClick={startLabelling}
               disabled={!labelFile}
-              className="mt-3 px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
+              className="mt-3 px-3 py-1.5 bg-accent text-white rounded text-xs disabled:opacity-50"
             >
               Start labelling
             </button>

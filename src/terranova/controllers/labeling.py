@@ -62,9 +62,18 @@ def start(payload: dict[str, Any]) -> dict[str, Any]:
             pass
 
     features: list[dict[str, Any]] = []
+    skipped_types: dict[int, int] = {}
     for feat in layer:
         geom = feat.GetGeometryRef()
-        if geom is None or geom.GetGeometryType() != ogr.wkbPoint:
+        if geom is None:
+            continue
+        # wkbFlatten strips Z/M dimensionality so wkbPoint25D, wkbPointM,
+        # and wkbPointZM all compare equal to wkbPoint.  Without this the
+        # check rejects perfectly valid 3D-stored points and we hit the
+        # 'no point features' error on a file that does have them.
+        gtype = ogr.wkbFlatten(geom.GetGeometryType())
+        if gtype != ogr.wkbPoint:
+            skipped_types[gtype] = skipped_types.get(gtype, 0) + 1
             continue
         features.append(
             {
@@ -76,12 +85,25 @@ def start(payload: dict[str, Any]) -> dict[str, Any]:
                 "note": feat.GetFieldAsString("note") or "",
             }
         )
+    total_features = layer.GetFeatureCount()
     ds = None  # close
 
     if not features:
+        # Include diagnostics so we don't end up debugging another silent
+        # 'no features' a year from now.
+        details = []
+        if total_features == 0:
+            details.append("the layer is empty")
+        if skipped_types:
+            names = ", ".join(
+                f"{ogr.GeometryTypeToName(t)} ({n})"
+                for t, n in skipped_types.items()
+            )
+            details.append(f"skipped non-point geometries: {names}")
+        suffix = f"  ({'; '.join(details)})" if details else ""
         raise RuntimeError(
             "No point features in the picked GeoPackage — generate a "
-            "validation set first."
+            f"validation set first.{suffix}"
         )
 
     classes = _class_codes(payload.get("raster_path"), features)

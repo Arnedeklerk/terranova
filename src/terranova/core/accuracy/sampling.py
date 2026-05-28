@@ -147,7 +147,10 @@ def generate_validation_points(
         feat.SetField("truth", 0)
         feat.SetField("note", "")
         geom = ogr.Geometry(ogr.wkbPoint)
-        geom.AddPoint(float(x), float(y))
+        # AddPoint_2D is explicit about not adding a Z dimension — some
+        # GDAL builds default AddPoint(x,y) to 3D with z=0, which then
+        # rejects on read against a 2D layer.
+        geom.AddPoint_2D(float(x), float(y))
         feat.SetGeometry(geom)
         layer.CreateFeature(feat)
         feat = None  # release
