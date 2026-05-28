@@ -102,6 +102,56 @@ def _log_search_result(
         pass
 
 
+def composite(payload: dict[str, Any]) -> dict[str, Any]:
+    """Start a multi-item composite job.  Returns ``{job_id}`` immediately.
+
+    Loads every item_id supplied as a lazy cube via odc.stac.load,
+    reduces over the time dimension with the chosen method (``mean``
+    or ``median``), and writes the result as a Cloud-Optimised
+    GeoTIFF.  Optional AOI clip mirrors the single-item download path.
+    """
+    from qgis.core import QgsApplication
+
+    job_id = str(uuid.uuid4())
+    try:
+        endpoint = STACEndpoint(payload["endpoint"])
+        collection = str(payload["collection"])
+        item_ids = list(payload["item_ids"])
+        if len(item_ids) < 2:
+            raise ValueError("composite needs at least 2 items")
+        bbox = payload["bbox"]
+        out_path = Path(payload["out_path"])
+    except KeyError as exc:
+        raise ValueError(f"missing required field: {exc}") from exc
+
+    method = str(payload.get("method", "median")).lower()
+    if method not in {"mean", "median"}:
+        raise ValueError(
+            f"unknown composite method: {method!r} (expected 'mean' or 'median')"
+        )
+
+    task = _build_composite_task(
+        job_id=job_id,
+        endpoint=endpoint,
+        collection=collection,
+        item_ids=item_ids,
+        bbox=(
+            float(bbox["west"]),
+            float(bbox["south"]),
+            float(bbox["east"]),
+            float(bbox["north"]),
+        ),
+        bands=list(payload.get("bands") or ["red", "green", "blue", "nir"]),
+        resolution=int(payload.get("resolution", 10)),
+        out_path=out_path,
+        mask_to_aoi=bool(payload.get("mask_to_aoi", False)),
+        method=method,
+    )
+    _keepalive.hold(job_id, task)
+    QgsApplication.taskManager().addTask(task)
+    return {"job_id": job_id}
+
+
 def download(payload: dict[str, Any]) -> dict[str, Any]:
     """Start a single-item download.  Returns ``{job_id}`` immediately."""
     from qgis.core import QgsApplication
@@ -312,3 +362,135 @@ def _open_client(endpoint: STACEndpoint):  # type: ignore[no-untyped-def]
     if endpoint is STACEndpoint.CDSE:
         return stac.open_cdse()
     raise ValueError(f"unknown endpoint: {endpoint!r}")
+
+
+# --------------------------------------------------------------------------- #
+# Composite (multi-item temporal reduction)                                   #
+# --------------------------------------------------------------------------- #
+def _build_composite_task(**kwargs: Any):  # type: ignore[no-untyped-def]
+    from qgis.core import QgsTask
+
+    class _CompositeJobTask(QgsTask):
+        def __init__(self) -> None:
+            super().__init__(
+                f"Terranova: composite {len(kwargs['item_ids'])} scenes",
+                QgsTask.CanCancel,
+            )
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+            self.result_path: Path | None = None
+            self.error_text: str | None = None
+
+        def run(self) -> bool:
+            return _do_composite(self)
+
+        def finished(self, ok: bool) -> None:  # noqa: N802
+            _on_finished(self, ok)
+
+    return _CompositeJobTask()
+
+
+def _do_composite(task: Any) -> bool:
+    from qgis.core import Qgis, QgsMessageLog
+
+    try:
+        _emit(task, 1, "Starting composite…")
+    except Exception:  # noqa: BLE001
+        QgsMessageLog.logMessage(
+            "Composite task started but couldn't emit progress event.",
+            "Terranova",
+            Qgis.MessageLevel.Warning,
+        )
+
+    try:
+        _emit(task, 2, "Loading geospatial libraries…")
+        import odc.stac
+        import rioxarray  # noqa: F401  — registers .rio accessor
+
+        _emit(
+            task,
+            5,
+            f"Refetching {len(task.item_ids)} items from STAC…",
+        )
+        client = _open_client(task.endpoint)
+        if task.isCanceled():
+            return False
+
+        # One bulk id-search, not N round-trips — every STAC server we
+        # target accepts the `ids` filter as a list.
+        items = list(
+            client.search(
+                ids=list(task.item_ids),
+                collections=[task.collection],
+                max_items=len(task.item_ids),
+            ).item_collection()
+        )
+        if len(items) < 2:
+            raise RuntimeError(
+                f"Resolved only {len(items)} item(s) from "
+                f"{len(task.item_ids)} ids — need at least 2 for a composite."
+            )
+        _emit(
+            task,
+            20,
+            f"Resolved {len(items)} items.  Bands: {', '.join(task.bands)}",
+        )
+        if task.isCanceled():
+            return False
+
+        _emit(task, 30, "Loading lazy cube + signing asset URLs…")
+        cube = odc.stac.load(
+            items,
+            bands=task.bands,
+            resolution=task.resolution,
+        )
+        if task.isCanceled():
+            return False
+
+        if task.mask_to_aoi:
+            _emit(task, 45, "Clipping cube to AOI…")
+            cube = cube.rio.clip_box(*task.bbox, crs="EPSG:4326")
+        else:
+            _emit(
+                task,
+                45,
+                "Mask to AOI is OFF — compositing the full scene footprint "
+                "(larger output GeoTIFF).",
+            )
+        if task.isCanceled():
+            return False
+
+        _emit(task, 55, f"Reducing time dimension with {task.method}…")
+        # Cast to float32 BEFORE reducing — Sentinel-2 reflectance is
+        # int16 with nodata=0; mean/median on the integer path zero-biases.
+        cube_f = cube.astype("float32")
+        # 0 -> NaN so the reduction ignores nodata pixels instead of
+        # averaging them in.
+        cube_f = cube_f.where(cube_f != 0)
+        if task.method == "mean":
+            composite = cube_f.mean(dim="time", skipna=True)
+        else:
+            composite = cube_f.median(dim="time", skipna=True)
+        # Back to int16 for a sensibly-sized COG.  NaNs become 0 (nodata).
+        composite = composite.fillna(0).astype("int16")
+        if task.isCanceled():
+            return False
+
+        _emit(task, 75, f"Writing {task.out_path.name}…")
+        task.out_path.parent.mkdir(parents=True, exist_ok=True)
+        composite.rio.to_raster(
+            str(task.out_path),
+            compress="deflate",
+            tiled=True,
+        )
+        task.result_path = task.out_path
+        _emit(task, 100, "Done.")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        task.error_text = f"{type(exc).__name__}: {exc}"
+        QgsMessageLog.logMessage(
+            f"Composite failed: {exc!r}",
+            "Terranova",
+            Qgis.MessageLevel.Critical,
+        )
+        return False

@@ -44,6 +44,7 @@ class Controllers:
         # Catalogue + canvas (Phase 1).
         self._handlers["catalog.search"] = _catalog.search
         self._handlers["catalog.download"] = _catalog.download
+        self._handlers["catalog.composite"] = _catalog.composite
         self._handlers["catalog.preview_footprint"] = _canvas.preview_footprint
         self._handlers["catalog.clear_preview"] = _canvas.clear_preview
         self._handlers["catalog.pick_aoi.start"] = _canvas.start_aoi_pick

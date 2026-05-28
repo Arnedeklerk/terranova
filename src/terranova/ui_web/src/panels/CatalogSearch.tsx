@@ -419,17 +419,41 @@ export function CatalogSearch() {
                 </span>
               )}
             </span>
-            <button
-              onClick={() => downloadBatch()}
-              disabled={selectedIds.size === 0 || downloading}
-              className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
-            >
-              {downloading
-                ? "Downloading…"
-                : `Download ${selectedIds.size || ""} as COG${
-                    selectedIds.size > 1 ? "s" : ""
-                  }…`}
-            </button>
+            <div className="flex items-stretch gap-2">
+              <button
+                onClick={() => downloadBatch()}
+                disabled={selectedIds.size === 0 || downloading}
+                className="px-3 py-1 bg-accent text-white rounded text-xs disabled:opacity-50"
+              >
+                {downloading
+                  ? "Downloading…"
+                  : `Download ${selectedIds.size || ""} as COG${
+                      selectedIds.size > 1 ? "s" : ""
+                    }…`}
+              </button>
+              {/* Composite (mean / median) — only useful with 2+ ticked
+                  items.  Loads them all as a lazy cube, reduces over
+                  time, writes a single COG.  The split button keeps the
+                  method choice visible without a modal. */}
+              <div className="flex items-stretch bg-bg-2 border border-bg-2 rounded overflow-hidden">
+                <button
+                  onClick={() => startComposite("median")}
+                  disabled={selectedIds.size < 2 || downloading}
+                  className="px-2.5 py-1 text-xs hover:bg-bg-0 border-r border-bg-2 disabled:opacity-40 disabled:cursor-default"
+                  title="Median reflectance per pixel across the ticked scenes — robust to clouds + outliers, recommended default."
+                >
+                  Composite (median)
+                </button>
+                <button
+                  onClick={() => startComposite("mean")}
+                  disabled={selectedIds.size < 2 || downloading}
+                  className="px-2.5 py-1 text-xs hover:bg-bg-0 disabled:opacity-40 disabled:cursor-default"
+                  title="Mean reflectance per pixel — smoother but more cloud-affected. Pick median unless you specifically need mean."
+                >
+                  Mean
+                </button>
+              </div>
+            </div>
           </div>
           <div className="max-h-72 overflow-auto">
             <table className="w-full text-xs">
@@ -570,6 +594,56 @@ export function CatalogSearch() {
     // can't fail).  We just bump the previewId; the parent's useMemo
     // pulls the geometry out of `results` and feeds it down.
     setPreviewId(it.id);
+  }
+
+  /**
+   * Build a single composite COG (mean or median reflectance per pixel)
+   * from every ticked scene.  Same job-id streaming pattern as the
+   * individual download path; the composite is added to the QGIS layer
+   * panel on completion.
+   */
+  async function startComposite(method: "mean" | "median") {
+    if (selectedIds.size < 2 || !results) return;
+    const items = results.filter((it) => selectedIds.has(it.id));
+    if (items.length < 2) return;
+
+    let bbox;
+    try {
+      bbox = currentBbox();
+    } catch (e) {
+      setErr((e as Error).message);
+      return;
+    }
+
+    const defaultName = `composite_${method}_${items.length}scenes.tif`;
+    const r = await invoke<{ path: string }>("dialog.save_file", {
+      default: defaultName,
+      title: `Save ${method} composite COG`,
+      filter: "Cloud-Optimised GeoTIFF (*.tif)",
+    });
+    if (!r.ok || !r.result?.path) return;
+
+    setErr(null);
+    setDownloading(true);
+    setBatchProgress({ done: 0, total: 1, failed: [] });
+    setCurrentItemId(`composite (${method})`);
+    setPendingQueue([]);
+    setBatchOutDir(null);
+
+    const dl = await invoke<{ job_id: string }>("catalog.composite", {
+      endpoint,
+      collection,
+      item_ids: items.map((it) => it.id),
+      bbox,
+      out_path: r.result.path,
+      mask_to_aoi: maskToAoi,
+      method,
+    });
+    if (dl.ok && dl.result?.job_id) {
+      setDownloadJobId(dl.result.job_id);
+    } else {
+      onItemComplete(false, dl.error ?? "catalog.composite failed");
+    }
   }
 
   async function downloadBatch() {
