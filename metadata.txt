@@ -4,7 +4,7 @@ qgisMinimumVersion=3.40
 qgisMaximumVersion=4.99
 description=Earth-observation toolkit for QGIS: STAC search, classical + deep-learning classification, time-series change detection.
 about=Terranova is an open-source QGIS plugin for modern Earth observation. STAC catalogue search and COG download from Planetary Computer / Earth Search / Copernicus Data Space; an embedded interactive map (Leaflet) for picking AOIs and inspecting scene footprints; classical (Random Forest / LightGBM / XGBoost) and deep-learning (Prithvi, Clay, SAM via TerraTorch + segment-geospatial) classification; accuracy reports; time-series change detection (CuSum, BFAST, LandTrendr). Dual UI: native Qt dialogs (compatibility) and a React dock panel via QtWebEngine (primary). GPL-3.0-or-later.
-version=0.1.0
+version=1.0.0
 author=Cole Battell, Arne de Klerk
 email=colebattell@gmail.com
 homepage=https://github.com/Arnedeklerk/terranova
@@ -19,14 +19,28 @@ category=Raster
 license=GPL-3.0-or-later
 plugin_dependencies=
 changelog=
-    0.1.0 (2026-05)
+    1.0.0 (2026-05)
+    First public release.
     - STAC catalogue search (Planetary Computer / Earth Search / CDSE) with
-      embedded interactive Leaflet map for AOI picking and scene-footprint
-      inspection.  Multi-select batch download as COG, optional AOI clip.
-    - Classical classification (Random Forest / LightGBM / XGBoost) and
-      accuracy reports.
-    - Time-series + per-pixel change detection (CuSum + BFAST/LandTrendr).
-    - SAM segmentation and foundation-model fine-tune scaffolding.
+      embedded interactive Leaflet map for AOI picking and overlap-aware
+      scene-footprint inspection.  Multi-select batch download as COG;
+      optional mean/median composite from up to N images.
+    - Supervised classification: Random Forest, Extra Trees, Gradient
+      Boosting, LightGBM, XGBoost, KNN, Logistic Regression, MLP — each
+      with a 2-4 sentence pros/cons hint in the panel.
+    - Unsupervised classification: K-Means + ISODATA, fit on a random
+      subsample with output as a labelled COG.
+    - Accuracy assessment: validation-vector mode (sample raster at every
+      pixel covered by a vector) AND random-points mode (generate
+      random / stratified / equalized-stratified points; step through
+      each one in a labelling pad with auto-pan + zoom-to-pixel +
+      class-name persistence; compute confusion matrix straight from
+      the labelled points file).  PDF + Excel report with OA / kappa /
+      per-class UA / PA / F1; OA shown as a percentage.
+    - Beta tabs (off by default): time-series + per-pixel change detection
+      (CuSum + BFAST/LandTrendr); SAM segmentation; Prithvi / Clay
+      foundation-model fine-tune scaffolding; CDSE OAuth sign-in.
     - Dual UI: native Qt dialogs for compatibility, React-in-QWebEngine
-      dock for the primary surface.
+      dock with embedded OpenStreetMap / Esri satellite basemap for
+      the primary surface.
     - NDVI Processing algorithm; CI on Linux/Windows/macOS.
