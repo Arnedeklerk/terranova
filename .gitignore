@@ -55,3 +55,4 @@ installation_id
 
 # Packaging artefacts
 terranova-*.zip
+src/terranova/metadata.txt

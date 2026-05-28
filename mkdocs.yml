@@ -2,8 +2,8 @@ site_name: Terranova
 site_description: A modern QGIS plugin for semi-automatic classification and change detection.
 # Published under /docs/ of the main GitHub Pages site; the landing page
 # at the repo root is the homepage and links here.
-site_url: https://arnedeklerk.github.io/terranova/docs/
-repo_url: https://github.com/Arnedeklerk/terranova
+site_url: https://terranovaeo.github.io/terranova/docs/
+repo_url: https://github.com/TerranovaEO/terranova
 edit_uri: edit/main/docs/
 
 theme:

@@ -78,7 +78,7 @@ export function Welcome() {
       <p className="text-fg-muted text-xs mt-8">
         Coming from SCP?{" "}
         <a
-          href="https://github.com/Arnedeklerk/terranova/blob/main/docs/scp_migration.md"
+          href="https://github.com/TerranovaEO/terranova/blob/main/docs/scp_migration.md"
           target="_blank"
           rel="noreferrer"
           className="text-accent hover:underline"

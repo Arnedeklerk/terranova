@@ -2,7 +2,7 @@
 # and (eventually) push to plugins.qgis.org.
 
 plugin_path: src/terranova
-github_organization_slug: Arnedeklerk
+github_organization_slug: TerranovaEO
 project_slug: terranova
 
 # We never want auto-generated translation pulls in this lockstep flow —

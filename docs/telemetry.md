@@ -1,6 +1,6 @@
 # Telemetry
 
-Terranova's telemetry is **opt-in**, **minimal**, and **inspectable**. The summary on this page is the same one in [PRIVACY.md](https://github.com/Arnedeklerk/terranova/blob/main/PRIVACY.md), elaborated for readers who want to dig into the implementation.
+Terranova's telemetry is **opt-in**, **minimal**, and **inspectable**. The summary on this page is the same one in [PRIVACY.md](https://github.com/TerranovaEO/terranova/blob/main/PRIVACY.md), elaborated for readers who want to dig into the implementation.
 
 ## What is sent
 

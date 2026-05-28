@@ -40,7 +40,7 @@ See [docs/architecture.md](docs/architecture.md) for the full diagram.
 
 ```bash
 # Clone and install dev deps (Python 3.10–3.12)
-git clone https://github.com/Arnedeklerk/terranova
+git clone https://github.com/TerranovaEO/terranova
 cd terranova
 uv sync --all-extras --dev
 
